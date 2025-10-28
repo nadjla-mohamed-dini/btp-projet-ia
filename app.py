@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from models import db
 from config import get_config
 
@@ -10,6 +10,11 @@ db.init_app(app)
 @app.route('/')
 def home():
     return jsonify({"message": "Bienvenue sur Feelflix - Application Flask avec PostgreSQL"})
+
+
+@app.route('/mood')
+def mood():
+    return render_template('mood.html')
 
 
 @app.route('/health')
