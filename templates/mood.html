@@ -99,7 +99,7 @@
 
         .mood-display {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 10px;
             margin-top: 20px;
         }
@@ -191,9 +191,10 @@
             <div class="mood-display">
                 <div class="mood-emoji">😢</div>
                 <div class="mood-emoji">😂</div>
-                <div class="mood-emoji">😐</div>
+                <div class="mood-emoji">😠</div>
                 <div class="mood-emoji">🙂</div>
-                <div class="mood-emoji">😄</div>
+                <div class="mood-emoji">😍</div>
+                <div class="mood-emoji">😨</div>
             </div>
 
             <div class="mood-value" id="moodValue">50</div>
@@ -218,9 +219,10 @@
         const moodLabels = {
             0: 'Très triste',
             25: 'Joyeux',
-            50: 'Neutre',
+            50: 'Énervé',
             75: 'Heureux',
-            100: 'Très heureux'
+            85: 'Amoureux',
+            100: 'Peur'
         };
 
         function updateMood() {
@@ -229,16 +231,24 @@
 
             // Update label
             let label = '';
-            if (value <= 25) label = moodLabels[0];
-            else if (value <= 50) label = moodLabels[25];
-            else if (value <= 60) label = moodLabels[50];
-            else if (value <= 85) label = moodLabels[75];
+            if (value <= 20) label = moodLabels[0];
+            else if (value <= 35) label = moodLabels[25];
+            else if (value <= 50) label = moodLabels[50];
+            else if (value <= 65) label = moodLabels[75];
+            else if (value <= 85) label = moodLabels[85];
             else label = moodLabels[100];
             
             moodLabel.textContent = label;
 
             // Update emoji highlights
-            const activeIndex = Math.round(value / 20);
+            let activeIndex;
+            if (value <= 20) activeIndex = 0;
+            else if (value <= 35) activeIndex = 1;
+            else if (value <= 50) activeIndex = 2;
+            else if (value <= 65) activeIndex = 3;
+            else if (value <= 85) activeIndex = 4;
+            else activeIndex = 5;
+            
             moodEmojis.forEach((emoji, index) => {
                 emoji.classList.remove('active');
                 if (index === activeIndex) {
