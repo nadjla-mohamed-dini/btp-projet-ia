@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import unittest
 from datetime import datetime
 from models import db, User, Mood, Movie

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Script d'initialisation de la base de données Feelflix
 Crée toutes les tables nécessaires
@@ -6,11 +7,12 @@ Crée toutes les tables nécessaires
 
 import os
 from dotenv import load_dotenv
-from app import app, db
-from models import User, Mood, Movie
 
+# Charger les variables d'environnement AVANT d'importer app
 load_dotenv()
 
+from app import app, db
+from models import User, Mood, Movie
 
 def init_database():
     """Initialise la base de données"""
@@ -34,7 +36,6 @@ def init_database():
         return False
     
     return True
-
 
 if __name__ == '__main__':
     success = init_database()

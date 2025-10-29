@@ -26,7 +26,7 @@ class DevelopmentConfig(Config):
     DB_PASSWORD = os.environ.get('DB_PASSWORD') or 'password'
     DB_HOST = os.environ.get('DB_HOST') or 'localhost'
     DB_PORT = os.environ.get('DB_PORT') or 5432
-    DB_NAME = 'Feelflix'
+    DB_NAME = os.environ.get('DB_NAME') or 'Fellflix'
     
     SQLALCHEMY_DATABASE_URI = (
         f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'

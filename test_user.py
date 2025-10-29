@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import unittest
 from models import db, User
 from flask import Flask
