@@ -19,7 +19,7 @@
             justify-content: center;
             align-items: center;
             padding-bottom: 80px;
-            padding-top: 40px;
+            padding-top: 100px;
         }
 
         .container {
@@ -192,9 +192,64 @@
         footer a:hover {
             text-decoration: underline;
         }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid white;
+        }
     </style>
 </head>
 <body>
+    <header>
+        <div class="logo">🎬 Feelflix</div>
+        <nav>
+            <a href="/">Accueil</a>
+            <a href="/mood" class="active">Un voyage cinématographique</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/profile">Mon profil</a>
+        </nav>
+    </header>
     <div class="container">
         <h1>🎬 Feelflix Mood Slider</h1>
         
