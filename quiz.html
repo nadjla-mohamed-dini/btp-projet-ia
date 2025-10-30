@@ -56,49 +56,168 @@
     </footer>
 
     <script>
-        // Gestion de la sélection des options
-        const options = document.querySelectorAll('.option');
-        options.forEach(option => {
-            option.addEventListener('click', () => {
-                options.forEach(opt => opt.classList.remove('selected'));
-                option.classList.add('selected');
+        let questions = [];
+        let currentQuestion = 0;
+        let score = 0;
+        let hasAnswered = false;
+
+        // Charger les questions depuis l'API
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/api/questions');
+                questions = await response.json();
+                showQuestion(0);
+                updateProgress();
+            } catch (error) {
+                console.error('Erreur lors du chargement des questions:', error);
+            }
+        }
+
+        // Afficher une question
+        function showQuestion(index) {
+            const questionData = questions[index];
+            document.querySelector('.question').textContent = questionData.question;
+            
+            const optionsContainer = document.querySelector('.options');
+            optionsContainer.innerHTML = '';
+            
+            questionData.choix.forEach((choix, i) => {
+                const option = document.createElement('div');
+                option.className = 'option';
+                option.textContent = choix;
+                option.dataset.index = i;
+                option.addEventListener('click', () => selectOption(option));
+                optionsContainer.appendChild(option);
             });
-        });
+
+            hasAnswered = false;
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.quiz-progress span:last-child').textContent = `Score: ${score}`;
+        }
+
+        // Sélectionner une option
+        function selectOption(selectedOption) {
+            if (hasAnswered) return;
+            
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            selectedOption.classList.add('selected');
+        }
+
+        // Vérifier la réponse
+        async function checkAnswer() {
+            const selectedOption = document.querySelector('.option.selected');
+            if (!selectedOption || hasAnswered) return;
+
+            const reponseIndex = parseInt(selectedOption.dataset.index);
+            try {
+                const response = await fetch('/api/verifier', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questionIndex: currentQuestion,
+                        reponseIndex: reponseIndex
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.correct) {
+                    score++;
+                    selectedOption.style.backgroundColor = '#4CAF50';
+                    selectedOption.style.color = 'white';
+                } else {
+                    selectedOption.style.backgroundColor = '#f44336';
+                    selectedOption.style.color = 'white';
+                    document.querySelectorAll('.option').forEach(opt => {
+                        if (opt.textContent === result.bonneReponse) {
+                            opt.style.backgroundColor = '#4CAF50';
+                            opt.style.color = 'white';
+                        }
+                    });
+                }
+                hasAnswered = true;
+                document.querySelector('.quiz-progress span:last-child').textContent = `Score: ${score}`;
+            } catch (error) {
+                console.error('Erreur lors de la vérification de la réponse:', error);
+            }
+        }
 
         // Gestion de la navigation
-        let currentQuestion = 1;
-        const totalQuestions = 5;
-        const progressFill = document.querySelector('.progress-fill');
         const nextButton = document.getElementById('nextBtn');
         const prevButton = document.getElementById('prevBtn');
-        const questionCounter = document.querySelector('.quiz-progress span:first-child');
 
-        nextButton.addEventListener('click', () => {
-            if (currentQuestion < totalQuestions) {
+        nextButton.addEventListener('click', async () => {
+            if (!hasAnswered) {
+                await checkAnswer();
+                return;
+            }
+
+            if (currentQuestion < questions.length - 1) {
                 currentQuestion++;
+                showQuestion(currentQuestion);
                 updateProgress();
-            } else {
-                // Terminer - pour l'instant on réinitialise
-                alert('Quiz terminé (démo).');
-                currentQuestion = 1;
-                updateProgress();
+            } else if (hasAnswered) {
+                showResults();
             }
         });
 
         prevButton.addEventListener('click', () => {
-            if (currentQuestion > 1) {
+            if (currentQuestion > 0) {
                 currentQuestion--;
+                showQuestion(currentQuestion);
                 updateProgress();
             }
         });
 
         function updateProgress() {
-            const progress = (currentQuestion - 1) / totalQuestions * 100;
-            progressFill.style.width = `${progress}%`;
-            questionCounter.textContent = `Question ${currentQuestion}/${totalQuestions}`;
-            prevButton.disabled = currentQuestion === 1;
-            nextButton.textContent = currentQuestion === totalQuestions ? 'Terminer' : 'Suivant';
+            const progress = (currentQuestion) / questions.length * 100;
+            document.querySelector('.progress-fill').style.width = `${progress}%`;
+            document.querySelector('.quiz-progress span:first-child').textContent = 
+                `Question ${currentQuestion + 1}/${questions.length}`;
+            
+            prevButton.disabled = currentQuestion === 0;
+            nextButton.textContent = currentQuestion === questions.length - 1 ? 'Terminer' : 'Suivant';
         }
+
+        function showResults() {
+            const pourcentage = (score / questions.length) * 100;
+            const container = document.querySelector('.quiz-container');
+            container.innerHTML = `
+                <div class="quiz-header">
+                    <h1>Résultats</h1>
+                </div>
+                <div class="results">
+                    <h2>Score final : ${score}/${questions.length}</h2>
+                    <p>Pourcentage : ${pourcentage.toFixed(1)}%</p>
+                    <p>${getResultMessage(pourcentage)}</p>
+                    <button class="quiz-button" onclick="location.reload()">Recommencer</button>
+                </div>
+            `;
+        }
+
+        function getResultMessage(pourcentage) {
+            if (pourcentage >= 90) return "🏆 Excellent ! Vous êtes un véritable cinéphile !";
+            if (pourcentage >= 70) return "👍 Très bien ! Vous connaissez bien le 7ème art.";
+            if (pourcentage >= 50) return "📚 Pas mal, mais il y a encore des films à découvrir !";
+            return "💪 Continuez à regarder des films, vous progresserez !";
+        }
+
+        // Lancer le quiz
+        loadQuestions();
     </script>
+
+    <style>
+        .results {
+            text-align: center;
+            padding: 2rem;
+        }
+        .results h2 {
+            color: #7C3AED;
+            margin-bottom: 1rem;
+        }
+        .results p {
+            margin: 1rem 0;
+            font-size: 1.2rem;
+        }
+    </style>
 </body>
 </html>
