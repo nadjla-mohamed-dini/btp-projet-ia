@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Utilisateur</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            padding-top: 100px;
+        }
+
+        main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .profile-photo {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 5px solid white;
+            object-fit: cover;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-name {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-content {
+            padding: 30px;
+        }
+
+        .preference-box {
+            margin-bottom: 25px;
+        }
+
+        .preference-label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preference-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .preference-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background-color: #f8f9ff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .preference-input::placeholder {
+            color: #bbb;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            padding: 0 30px 30px 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-save:active {
+            transform: translateY(0);
+        }
+
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-cancel:hover {
+            background: #e8e8e8;
+            border-color: #d0d0d0;
+        }
+
+        .btn-cancel:active {
+            transform: translateY(0);
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.1);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            font-size: 12px;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .profile-header {
+                padding: 30px 15px;
+            }
+
+            .profile-photo {
+                width: 120px;
+                height: 120px;
+            }
+
+            .profile-name {
+                font-size: 24px;
+            }
+
+            .profile-content {
+                padding: 20px;
+            }
+
+            .button-group {
+                padding: 0 20px 20px 20px;
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">🎬 Feelflix</div>
+        <nav>
+            <a href="/">Accueil</a>
+            <a href="/mood">Un voyage cinématographique</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/profile" class="active">Mon profil</a>
+        </nav>
+    </header>
+    <main>
+        <div class="container">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <img src="https://via.placeholder.com/150" alt="Photo de profil" class="profile-photo">
+                    <h1 class="profile-name" id="username">Pseudo Utilisateur</h1>
+                </div>
+
+                <div class="profile-content">
+                    <div class="preference-box">
+                        <label class="preference-label">Citation de film:</label>
+                        <input type="text" id="citation" class="preference-input" placeholder="Entrez votre citation préférée...">
+                    </div>
+
+                    <div class="preference-box">
+                        <label class="preference-label">Acteur/Actrice préféré:</label>
+                        <input type="text" id="acteur" class="preference-input" placeholder="Entrez votre acteur(rice) préféré(e)...">
+                    </div>
+
+                    <div class="preference-box">
+                        <label class="preference-label">Réalisateur/Réalisatrice préféré:</label>
+                        <input type="text" id="realisateur" class="preference-input" placeholder="Entrez votre réalisateur(rice) préféré(e)...">
+                    </div>
+
+                    <div class="preference-box">
+                        <label class="preference-label">Film préféré:</label>
+                        <input type="text" id="film" class="preference-input" placeholder="Entrez votre film préféré...">
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-save" id="save-btn">Enregistrer</button>
+                    <button class="btn btn-cancel" id="logout-btn">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Feelflix. Tous droits réservés. | <a href="#">Politique de confidentialité</a> | <a href="#">Conditions d'utilisation</a></p>
+    </footer>
+
+    <script>
+        const API_BASE = '/api';
+
+        // Load user profile on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Get user_id from session (you might need to add an endpoint to get this)
+                const response = await fetch('/api/user-info', {
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const userId = data.user_id;
+                    
+                    // Load profile
+                    const profileResponse = await fetch(`${API_BASE}/profile/${userId}`, {
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (profileResponse.ok) {
+                        const profileData = await profileResponse.json();
+                        
+                        // Fill form with data
+                        document.getElementById('username').textContent = profileData.user.username;
+                        if (profileData.profile) {
+                            document.getElementById('citation').value = profileData.profile.citation || '';
+                            document.getElementById('acteur').value = profileData.profile.acteur || '';
+                            document.getElementById('realisateur').value = profileData.profile.realisateur || '';
+                            document.getElementById('film').value = profileData.profile.film || '';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        });
+
+        // Save profile
+        document.getElementById('save-btn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/user-info', {
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const userId = data.user_id;
+                    
+                    const saveResponse = await fetch(`${API_BASE}/profile/${userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            favorite_quote: document.getElementById('citation').value,
+                            favorite_actor: document.getElementById('acteur').value,
+                            favorite_director: document.getElementById('realisateur').value,
+                            favorite_movie: document.getElementById('film').value
+                        })
+                    });
+                    
+                    if (saveResponse.ok) {
+                        alert('✓ Profil enregistré avec succès!');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'enregistrement');
+            }
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async function() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/formulaire';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        });
+    </script>
+</body>
+</html>
+
