@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feelflix - Quiz Cinéma</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <a href="accueil.html" style="color: inherit; text-decoration: none;">🎬 Feelflix</a>
+        </div>
+        <div class="nav-links">
+            <a href="accueil.html">Accueil</a>
+            <a href="#">Un voyage cinématographique</a>
+            <a href="quiz.html">Quiz</a>
+            <a href="#">Mon profil</a>
+        </div>
+    </nav>
+
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1>Quiz Cinéma</h1>
+            <p>Testez vos connaissances cinématographiques !</p>
+        </div>
+
+        <div class="quiz-progress">
+            <span>Question 1/5</span>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <span>Score: 0</span>
+        </div>
+
+        <div class="question-container">
+            <div class="question">
+                Quel film a remporté l'Oscar du meilleur film en 2024 ?
+            </div>
+            <div class="options">
+                <div class="option">Oppenheimer</div>
+                <div class="option">Barbie</div>
+                <div class="option">Killers of the Flower Moon</div>
+                <div class="option">Past Lives</div>
+            </div>
+        </div>
+
+        <div class="navigation-buttons">
+            <button class="quiz-button" disabled id="prevBtn">Précédent</button>
+            <button class="quiz-button" id="nextBtn">Suivant</button>
+        </div>
+    </div>
+
+    <footer>
+        © 2025 Feelflix - Découvrez des films selon votre humeur | <a href="#">A propos</a>
+    </footer>
+
+    <script>
+        // Gestion de la sélection des options
+        const options = document.querySelectorAll('.option');
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                options.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+
+        // Gestion de la navigation
+        let currentQuestion = 1;
+        const totalQuestions = 5;
+        const progressFill = document.querySelector('.progress-fill');
+        const nextButton = document.getElementById('nextBtn');
+        const prevButton = document.getElementById('prevBtn');
+        const questionCounter = document.querySelector('.quiz-progress span:first-child');
+
+        nextButton.addEventListener('click', () => {
+            if (currentQuestion < totalQuestions) {
+                currentQuestion++;
+                updateProgress();
+            } else {
+                // Terminer - pour l'instant on réinitialise
+                alert('Quiz terminé (démo).');
+                currentQuestion = 1;
+                updateProgress();
+            }
+        });
+
+        prevButton.addEventListener('click', () => {
+            if (currentQuestion > 1) {
+                currentQuestion--;
+                updateProgress();
+            }
+        });
+
+        function updateProgress() {
+            const progress = (currentQuestion - 1) / totalQuestions * 100;
+            progressFill.style.width = `${progress}%`;
+            questionCounter.textContent = `Question ${currentQuestion}/${totalQuestions}`;
+            prevButton.disabled = currentQuestion === 1;
+            nextButton.textContent = currentQuestion === totalQuestions ? 'Terminer' : 'Suivant';
+        }
+    </script>
+</body>
+</html>
