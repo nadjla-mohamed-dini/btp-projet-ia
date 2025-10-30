@@ -75,6 +75,23 @@
             letter-spacing: 0.5px;
         }
 
+        .btn-photo-upload {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-photo-upload:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
         .profile-content {
             padding: 30px;
         }
@@ -270,8 +287,10 @@
         <div class="container">
             <div class="profile-card">
                 <div class="profile-header">
-                    <img src="https://via.placeholder.com/150" alt="Photo de profil" class="profile-photo">
+                    <img src="https://via.placeholder.com/150" alt="Photo de profil" class="profile-photo" id="profile-photo">
                     <h1 class="profile-name" id="username">Pseudo Utilisateur</h1>
+                    <input type="file" id="photo-input" style="display: none;" accept="image/*">
+                    <button class="btn-photo-upload" id="upload-photo-btn" style="margin-top: 10px;">Changer la photo</button>
                 </div>
 
                 <div class="profile-content">
@@ -314,7 +333,7 @@
         // Load user profile on page load
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                // Get user_id from session (you might need to add an endpoint to get this)
+                // Get user_id from session
                 const response = await fetch('/api/user-info', {
                     credentials: 'same-origin'
                 });
@@ -333,6 +352,12 @@
                         
                         // Fill form with data
                         document.getElementById('username').textContent = profileData.user.username;
+                        
+                        // Load photo if exists
+                        if (profileData.profile && profileData.profile.photo_url) {
+                            document.getElementById('profile-photo').src = profileData.profile.photo_url;
+                        }
+                        
                         if (profileData.profile) {
                             document.getElementById('citation').value = profileData.profile.citation || '';
                             document.getElementById('acteur').value = profileData.profile.acteur || '';
@@ -343,6 +368,48 @@
                 }
             } catch (error) {
                 console.error('Erreur:', error);
+            }
+        });
+
+        // Handle photo upload
+        document.getElementById('upload-photo-btn').addEventListener('click', function() {
+            document.getElementById('photo-input').click();
+        });
+
+        document.getElementById('photo-input').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const response = await fetch('/api/user-info', {
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const userId = data.user_id;
+                    
+                    const formData = new FormData();
+                    formData.append('photo', file);
+                    
+                    const uploadResponse = await fetch(`${API_BASE}/profile/${userId}/photo`, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        body: formData
+                    });
+                    
+                    if (uploadResponse.ok) {
+                        const result = await uploadResponse.json();
+                        document.getElementById('profile-photo').src = result.photo_url;
+                        alert('✓ Photo de profil mise à jour!');
+                    } else {
+                        const error = await uploadResponse.json();
+                        alert('❌ ' + error.message);
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du téléchargement de la photo');
             }
         });
 

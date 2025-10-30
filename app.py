@@ -1,15 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Configuration des uploads
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Enable CORS
 CORS(app, supports_credentials=True)
@@ -167,6 +177,55 @@ def update_profile(user_id):
     db.session.commit()
     print(f"DEBUG - Profil sauvegardé: citation={profile.citation}, acteur={profile.acteur}, realisateur={profile.realisateur}, film={profile.film}")
     return jsonify({'status': 'success', 'profile': profile.to_dict()})
+
+
+@app.route('/api/profile/<int:user_id>/photo', methods=['POST'])
+def upload_profile_photo(user_id):
+    if 'photo' not in request.files:
+        return jsonify({'status': 'error', 'message': 'Aucun fichier photo'}), 400
+    
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'Fichier vide'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'status': 'error', 'message': 'Format de fichier non autorisé'}), 400
+    
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'status': 'error', 'message': 'Utilisateur non trouvé'}), 404
+        
+        profile = Profile.query.filter_by(user_id=user_id).first()
+        if not profile:
+            profile = Profile(user_id=user_id)
+            db.session.add(profile)
+        
+        # Créer un nom de fichier unique
+        filename = secure_filename(f"{user_id}_{datetime.utcnow().timestamp()}_{file.filename}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Créer le dossier s'il n'existe pas
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        
+        # Sauvegarder le fichier
+        file.save(filepath)
+        
+        # Enregistrer l'URL dans la base de données
+        profile.photo_url = f"/uploads/{filename}"
+        db.session.commit()
+        
+        print(f"DEBUG - Photo uploadée: user_id={user_id}, filename={filename}")
+        return jsonify({'status': 'success', 'photo_url': profile.photo_url})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erreur upload photo: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 # API Endpoints - Films
