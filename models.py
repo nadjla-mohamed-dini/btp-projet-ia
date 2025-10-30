@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 db = SQLAlchemy()
 
 
@@ -50,7 +51,33 @@ class Movie(db.Model):
     description = db.Column(db.Text)
     genre = db.Column(db.String(100))
     rating = db.Column(db.Float)
+    poster_url = db.Column(db.String(255)) 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
         return f'<Movie {self.title}>'
+
+class Profile(db.Model):
+    __tablename__ = 'profiles'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    citation = db.Column(db.String(255))
+    acteur = db.Column(db.String(120))
+    realisateur = db.Column(db.String(120))
+    film = db.Column(db.String(120))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'citation': self.citation,
+            'acteur': self.acteur,
+            'realisateur': self.realisateur,
+            'film': self.film
+        }
+    
+    def __repr__(self):
+        return f'<Profile user_id={self.user_id}>'

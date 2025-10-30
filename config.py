@@ -1,19 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-from datetime import timedelta
-
 
 class Config:
     """Configuration de base"""
+    SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = False
-    
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
-    
-    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
 
 
 class DevelopmentConfig(Config):
@@ -21,15 +12,15 @@ class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False
     SQLALCHEMY_ECHO = True
-    
-    DB_USER = os.environ.get('DB_USER') or 'postgres'
-    DB_PASSWORD = os.environ.get('DB_PASSWORD') or 'password'
-    DB_HOST = os.environ.get('DB_HOST') or 'localhost'
-    DB_PORT = os.environ.get('DB_PORT') or 5432
-    DB_NAME = os.environ.get('DB_NAME') or 'Fellflix'
-    
+
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "Feelflix")
+
     SQLALCHEMY_DATABASE_URI = (
-        f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
 
 
@@ -37,40 +28,44 @@ class ProductionConfig(Config):
     """Configuration de production"""
     DEBUG = False
     TESTING = False
-    
-    DB_USER = os.environ.get('DB_USER')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD')
-    DB_HOST = os.environ.get('DB_HOST')
-    DB_PORT = os.environ.get('DB_PORT') or 5432
-    DB_NAME = 'Feelflix'
-    
-    if not all([DB_USER, DB_PASSWORD, DB_HOST]):
-        raise ValueError('Variables d\'environnement DB_USER, DB_PASSWORD et DB_HOST requises')
-    
-    SQLALCHEMY_DATABASE_URI = (
-        f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-    )
-    
+
+    def __init__(self):
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD")
+        db_host = os.getenv("DB_HOST")
+        db_port = os.getenv("DB_PORT", "5432")
+        db_name = os.getenv("DB_NAME", "Feelflix")
+
+        if not all([db_user, db_password, db_host]):
+            raise ValueError("Variables d'environnement DB_USER, DB_PASSWORD et DB_HOST requises")
+
+        self.SQLALCHEMY_DATABASE_URI = (
+            f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        )
+
     SESSION_COOKIE_SECURE = True
 
 
 class TestingConfig(Config):
-    """Configuration de test"""
-    DEBUG = True
+    """Configuration pour les tests"""
+    DEBUG = False
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    WTF_CSRF_ENABLED = False
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
 
 def get_config(env=None):
     """Retourne la configuration appropriée selon l'environnement"""
     if env is None:
-        env = os.environ.get('FLASK_ENV', 'development')
-    
+        env = os.getenv("FLASK_ENV", "development")
+
     config_map = {
-        'development': DevelopmentConfig,
-        'production': ProductionConfig,
-        'testing': TestingConfig
+        "development": DevelopmentConfig,
+        "production": ProductionConfig,
+        "testing": TestingConfig
     }
-    
-    return config_map.get(env, DevelopmentConfig)
+
+    config_class = config_map.get(env, DevelopmentConfig)
+
+    # Si la classe a un constructeur personnalisé, on l’instancie
+    return config_class() if callable(config_class) else config_class
+
