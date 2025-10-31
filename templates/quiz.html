@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feelflix - Quiz Cinéma</title>
+    <style>
+        .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to right, #7C3AED, #9333EA);
+    padding: 1rem 2rem;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 100px;
+        padding-bottom: 80px;
+    }
+    header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid white;
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .quiz-header h1 {
+            color: #7C3AED;
+            margin-bottom: 1rem;
+        }
+
+        .question-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+        }
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        .options {
+            display: grid;
+            gap: 1rem;
+        }
+        .option {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .option:hover {
+            border-color: #7C3AED;
+            background: #f0f0ff;
+        }
+        .option.selected {
+            background: #7C3AED;
+            color: white;
+            border-color: #7C3AED;
+        }
+
+        .quiz-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            color: #666;
+        }
+        .progress-bar {
+            flex-grow: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 0 1rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #7C3AED, #9333EA);
+            width: 20%;
+            transition: width 0.3s ease;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        .quiz-button {
+            background: linear-gradient(to right, #7C3AED, #9333EA);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .quiz-button:hover {
+            opacity: 0.9;
+        }
+        .quiz-button:disabled {
+            background: #e0e0e0;
+            cursor: not-allowed;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1rem;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .results {
+            text-align: center;
+            padding: 2rem;
+        }
+        .results h2 {
+            color: #7C3AED;
+            margin-bottom: 1rem;
+        }
+        .results p {
+            margin: 1rem 0;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">🎬 Feelflix</div>
+        <nav>
+            <a href="/mood" class=>Accueil</a>
+            <a href="#">Un voyage cinématographique</a>
+            <a href="/quiz.html" class="active">Quiz</a>
+            <a href="/profile">Mon profil</a>
+        </nav>
+    </header>
+
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1>Quiz Cinéma</h1>
+            <p>Testez vos connaissances cinématographiques !</p>
+        </div>
+
+        <div class="quiz-progress">
+            <span>Question 1/5</span>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <span>Score: 0</span>
+        </div>
+
+        <div class="question-container">
+            <div class="question">
+                Quel film a remporté l'Oscar du meilleur film en 2024 ?
+            </div>
+            <div class="options">
+                <div class="option">Oppenheimer</div>
+                <div class="option">Barbie</div>
+                <div class="option">Killers of the Flower Moon</div>
+                <div class="option">Past Lives</div>
+            </div>
+        </div>
+
+        <div class="navigation-buttons">
+            <button class="quiz-button" disabled id="prevBtn">Précédent</button>
+            <button class="quiz-button" id="nextBtn">Suivant</button>
+        </div>
+    </div>
+
+    <footer>
+        © 2025 Feelflix - Découvrez des films selon votre humeur | <a href="#">A propos</a>
+    </footer>
+
+    <script>
+        let questions = [];
+        let currentQuestion = 0;
+        let score = 0;
+        let hasAnswered = false;
+
+        // Charger les questions depuis l'API
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/api/questions');
+                questions = await response.json();
+                showQuestion(0);
+                updateProgress();
+            } catch (error) {
+                console.error('Erreur lors du chargement des questions:', error);
+            }
+        }
+
+        // Afficher une question
+        function showQuestion(index) {
+            const questionData = questions[index];
+            document.querySelector('.question').textContent = questionData.question;
+            
+            const optionsContainer = document.querySelector('.options');
+            optionsContainer.innerHTML = '';
+            
+            questionData.choix.forEach((choix, i) => {
+                const option = document.createElement('div');
+                option.className = 'option';
+                option.textContent = choix;
+                option.dataset.index = i;
+                option.addEventListener('click', () => selectOption(option));
+                optionsContainer.appendChild(option);
+            });
+
+            hasAnswered = false;
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.quiz-progress span:last-child').textContent = `Score: ${score}`;
+        }
+
+        // Sélectionner une option
+        function selectOption(selectedOption) {
+            if (hasAnswered) return;
+            
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            selectedOption.classList.add('selected');
+        }
+
+        // Vérifier la réponse
+        async function checkAnswer() {
+            const selectedOption = document.querySelector('.option.selected');
+            if (!selectedOption || hasAnswered) return;
+
+            const reponseIndex = parseInt(selectedOption.dataset.index);
+            try {
+                const response = await fetch('/api/verifier', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questionIndex: currentQuestion,
+                        reponseIndex: reponseIndex
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.correct) {
+                    score++;
+                    selectedOption.style.backgroundColor = '#4CAF50';
+                    selectedOption.style.color = 'white';
+                } else {
+                    selectedOption.style.backgroundColor = '#f44336';
+                    selectedOption.style.color = 'white';
+                    document.querySelectorAll('.option').forEach(opt => {
+                        if (opt.textContent === result.bonneReponse) {
+                            opt.style.backgroundColor = '#4CAF50';
+                            opt.style.color = 'white';
+                        }
+                    });
+                }
+                hasAnswered = true;
+                document.querySelector('.quiz-progress span:last-child').textContent = `Score: ${score}`;
+            } catch (error) {
+                console.error('Erreur lors de la vérification de la réponse:', error);
+            }
+        }
+
+        // Gestion de la navigation
+        const nextButton = document.getElementById('nextBtn');
+        const prevButton = document.getElementById('prevBtn');
+
+        nextButton.addEventListener('click', async () => {
+            if (!hasAnswered) {
+                await checkAnswer();
+                return;
+            }
+
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                showQuestion(currentQuestion);
+                updateProgress();
+            } else if (hasAnswered) {
+                showResults();
+            }
+        });
+
+        prevButton.addEventListener('click', () => {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion(currentQuestion);
+                updateProgress();
+            }
+        });
+
+        function updateProgress() {
+            const progress = (currentQuestion) / questions.length * 100;
+            document.querySelector('.progress-fill').style.width = `${progress}%`;
+            document.querySelector('.quiz-progress span:first-child').textContent = 
+                `Question ${currentQuestion + 1}/${questions.length}`;
+            
+            prevButton.disabled = currentQuestion === 0;
+            nextButton.textContent = currentQuestion === questions.length - 1 ? 'Terminer' : 'Suivant';
+        }
+
+        function showResults() {
+            const pourcentage = (score / questions.length) * 100;
+            const container = document.querySelector('.quiz-container');
+            container.innerHTML = `
+                <div class="quiz-header">
+                    <h1>Résultats</h1>
+                </div>
+                <div class="results">
+                    <h2>Score final : ${score}/${questions.length}</h2>
+                    <p>Pourcentage : ${pourcentage.toFixed(1)}%</p>
+                    <p>${getResultMessage(pourcentage)}</p>
+                    <button class="quiz-button" onclick="location.reload()">Recommencer</button>
+                </div>
+            `;
+        }
+
+        function getResultMessage(pourcentage) {
+            if (pourcentage >= 90) return "🏆 Excellent ! Vous êtes un véritable cinéphile !";
+            if (pourcentage >= 70) return "👍 Très bien ! Vous connaissez bien le 7ème art.";
+            if (pourcentage >= 50) return "📚 Pas mal, mais il y a encore des films à découvrir !";
+            return "💪 Continuez à regarder des films, vous progresserez !";
+        }
+
+        // Lancer le quiz
+        loadQuestions();
+    </script>
+
+        
+</body>
+</html>

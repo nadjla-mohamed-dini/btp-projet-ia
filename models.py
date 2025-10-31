@@ -66,6 +66,7 @@ class Profile(db.Model):
     acteur = db.Column(db.String(120))
     realisateur = db.Column(db.String(120))
     film = db.Column(db.String(120))
+    photo_url = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -76,7 +77,8 @@ class Profile(db.Model):
             'citation': self.citation,
             'acteur': self.acteur,
             'realisateur': self.realisateur,
-            'film': self.film
+            'film': self.film,
+            'photo_url': self.photo_url
         }
     
     def __repr__(self):
