@@ -44,7 +44,19 @@
             </div>
 
             <button id="submitBtn" class="find-movie-btn">Trouver un film</button>
-            <div id="filmResults" class="film-results"></div>
+            <div id="filmResults" class="film-results" style="display: none;">
+                <div class="carousel" id="moodCarousel" role="region" aria-label="Carrousel de films" style="display: none;">
+                    <button class="carousel-control prev" aria-label="Film précédent" id="carouselPrev">
+                        <span aria-hidden="true">‹</span>
+                    </button>
+                    <div class="carousel-track-viewport">
+                        <ul class="carousel-track" id="carouselTrack" role="list"></ul>
+                    </div>
+                    <button class="carousel-control next" aria-label="Film suivant" id="carouselNext">
+                        <span aria-hidden="true">›</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -115,9 +127,9 @@
         submitBtn.addEventListener('click', async () => {
             const val = moodSlider.value;
             const mood = getMoodFromValue(val);
-            // call API to get films for this mood
+            // call API to get films for this mood with limit
             try {
-                const resp = await fetch(`/api/films?value=${val}&mood=${encodeURIComponent(mood)}`);
+                const resp = await fetch(`/api/films?value=${val}&mood=${encodeURIComponent(mood)}&limit=16`);
                 if (!resp.ok) throw new Error('Erreur lors de la récupération des films');
                 const films = await resp.json();
                 renderFilms(films);
@@ -158,26 +170,230 @@
             updateActiveEmoji(val);
         });
 
+        // Carousel state
+        let carouselState = {
+            currentIndex: 0,
+            itemsPerView: 4,
+            selectedIndex: -1,
+            films: []
+        };
+
+        // Initialize carousel on load
+        function initCarousel() {
+            const carousel = document.getElementById('moodCarousel');
+            const track = document.getElementById('carouselTrack');
+            const prevBtn = document.getElementById('carouselPrev');
+            const nextBtn = document.getElementById('carouselNext');
+            
+            if (!carousel || !track) return;
+
+            // Update items per view based on screen size
+            function updateItemsPerView() {
+                const width = window.innerWidth;
+                if (width >= 1200) {
+                    carouselState.itemsPerView = 4;
+                } else if (width >= 768) {
+                    carouselState.itemsPerView = 2;
+                } else {
+                    carouselState.itemsPerView = 1;
+                }
+                updateCarouselPosition();
+            }
+
+            // Update carousel position
+            function updateCarouselPosition() {
+                if (!track || carouselState.films.length === 0) return;
+                const firstItem = track.querySelector('.carousel-item');
+                if (!firstItem) return;
+                
+                const itemWidth = firstItem.offsetWidth;
+                const gap = 16;
+                const translateX = -(carouselState.currentIndex * (itemWidth + gap));
+                track.style.transform = `translateX(${translateX}px)`;
+            }
+
+            // Navigate carousel
+            function moveCarousel(direction) {
+                const totalItems = carouselState.films.length;
+                if (totalItems === 0) return;
+
+                if (direction === 'next') {
+                    carouselState.currentIndex = (carouselState.currentIndex + 1) % totalItems;
+                } else {
+                    carouselState.currentIndex = (carouselState.currentIndex - 1 + totalItems) % totalItems;
+                }
+                updateCarouselPosition();
+            }
+
+            // Handle selection
+            function handleSelection(index) {
+                // Single selection mode
+                const items = track.querySelectorAll('.carousel-item');
+                items.forEach((item, i) => {
+                    if (i === index) {
+                        item.classList.toggle('selected');
+                        if (item.classList.contains('selected')) {
+                            carouselState.selectedIndex = index;
+                            item.setAttribute('aria-pressed', 'true');
+                        } else {
+                            carouselState.selectedIndex = -1;
+                            item.setAttribute('aria-pressed', 'false');
+                        }
+                    } else {
+                        item.classList.remove('selected');
+                        item.setAttribute('aria-pressed', 'false');
+                    }
+                });
+            }
+
+            // Handle click on poster - redirect if selected
+            track.addEventListener('click', (e) => {
+                const item = e.target.closest('.carousel-item');
+                if (!item) return;
+                
+                const index = Array.from(track.children).indexOf(item);
+                const isSelected = item.classList.contains('selected');
+                
+                if (isSelected) {
+                    // Redirect to movie site
+                    const movie = carouselState.films[index];
+                    if (movie) {
+                        window.open(`https://www.themoviedb.org/search?query=${encodeURIComponent(movie.title)}`, '_blank', 'noopener,noreferrer');
+                    }
+                } else {
+                    handleSelection(index);
+                }
+            });
+
+            // Button handlers
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => moveCarousel('prev'));
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => moveCarousel('next'));
+            }
+
+            // Keyboard navigation
+            carousel.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    moveCarousel('prev');
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    moveCarousel('next');
+                } else if (e.key === 'Enter' || e.key === ' ') {
+                    const focused = document.activeElement.closest('.carousel-item');
+                    if (focused) {
+                        e.preventDefault();
+                        const index = Array.from(track.children).indexOf(focused);
+                        handleSelection(index);
+                    }
+                }
+            });
+
+            // Touch/swipe support
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            carousel.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            carousel.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                const diff = touchStartX - touchEndX;
+                
+                if (Math.abs(diff) > swipeThreshold) {
+                    if (diff > 0) {
+                        moveCarousel('next');
+                    } else {
+                        moveCarousel('prev');
+                    }
+                }
+            }
+
+            // Window resize handler
+            window.addEventListener('resize', () => {
+                updateItemsPerView();
+            });
+
+            // Expose update function
+            window.updateCarouselPosition = updateCarouselPosition;
+            window.updateItemsPerView = updateItemsPerView;
+        }
+
         function renderFilms(films) {
+            const carousel = document.getElementById('moodCarousel');
+            const track = document.getElementById('carouselTrack');
+            
             if (!films || films.length === 0) {
-                filmResults.innerHTML = '<p>Aucun film trouvé pour cette humeur.</p>';
+                filmResults.style.display = 'block';
+                if (carousel) carousel.style.display = 'none';
+                filmResults.innerHTML = '<p class="no-films">Aucun film trouvé pour cette humeur.</p>';
                 return;
             }
-            // build a responsive grid to display posters
-            const tiles = films.map(movie => `
-                <div class="film-tile" role="article">
-                    <a href="https://www.themoviedb.org/search?query=${encodeURIComponent(movie.title)}" target="_blank" rel="noopener noreferrer">
-                      <img loading="lazy" src="${movie.poster_url}" alt="${movie.title}">
-                    </a>
-                    <div class="meta">
-                        <h4>${movie.title}</h4>
-                        <p>${movie.genre} • Note: ${movie.rating}</p>
-                    </div>
-                </div>
-            `).join('');
 
-            // Use grid by default. On narrow screens this behaves like a carousel if there's many tiles.
-            filmResults.innerHTML = `<div class="film-grid">${tiles}</div>`;
+            carouselState.films = films;
+            carouselState.currentIndex = 0;
+            carouselState.selectedIndex = -1;
+
+            if (!track) return;
+
+            // Show carousel and results
+            filmResults.style.display = 'block';
+            if (carousel) carousel.style.display = 'block';
+
+            // Clear previous items
+            track.innerHTML = '';
+
+            // Create carousel items
+            films.forEach((movie, index) => {
+                const li = document.createElement('li');
+                li.className = 'carousel-item';
+                li.setAttribute('role', 'listitem');
+                li.setAttribute('tabindex', '0');
+                li.setAttribute('aria-pressed', 'false');
+                li.setAttribute('aria-label', `${movie.title}, ${movie.genre}, Note: ${movie.rating}`);
+                
+                li.innerHTML = `
+                    <div class="poster-wrapper">
+                        <img loading="lazy" src="${movie.poster_url}" alt="${movie.title}" class="poster-image">
+                        <div class="poster-overlay">
+                            <h3 class="poster-title">${movie.title}</h3>
+                            <div class="poster-info">
+                                <span class="poster-rating">⭐ ${movie.rating}</span>
+                                <span class="poster-genre">${movie.genre}</span>
+                            </div>
+                        </div>
+                        <div class="selection-indicator">
+                            <span class="check-icon">✓</span>
+                        </div>
+                    </div>
+                `;
+                
+                track.appendChild(li);
+            });
+
+            // Initialize carousel if not already done
+            if (!window.carouselInitialized) {
+                initCarousel();
+                window.carouselInitialized = true;
+            }
+
+            // Update items per view and position after images load
+            setTimeout(() => {
+                if (window.updateItemsPerView) {
+                    window.updateItemsPerView();
+                }
+                if (window.updateCarouselPosition) {
+                    window.updateCarouselPosition();
+                }
+            }, 100);
         }
     </script>
 </html>

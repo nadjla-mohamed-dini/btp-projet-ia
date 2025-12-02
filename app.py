@@ -36,6 +36,8 @@ def get_films_by_mood_api():
     # Accept either ?value=0-100 or ?mood=string
     value = request.args.get('value')
     mood = request.args.get('mood')
+    limit = request.args.get('limit', type=int, default=16)  # Default to 16 films for carousel
+    
     if value is not None:
         try:
             value = int(value)
@@ -50,25 +52,73 @@ def get_films_by_mood_api():
     films = {
         "joyeux": [
             {"title": "Le Grand Saut", "description": "Une comédie optimiste.", "genre": "Comédie", "rating": 7.2, "poster_url": "https://via.placeholder.com/300x450?text=Le+Grand+Saut"},
-            {"title": "Sourires Partout", "description": "Une histoire qui redonne le sourire.", "genre": "Comédie", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Sourires+Partout"}
+            {"title": "Sourires Partout", "description": "Une histoire qui redonne le sourire.", "genre": "Comédie", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Sourires+Partout"},
+            {"title": "La Fête Continue", "description": "Une célébration de la joie.", "genre": "Comédie", "rating": 7.5, "poster_url": "https://via.placeholder.com/300x450?text=La+Fete+Continue"},
+            {"title": "Rires Garantis", "description": "Comédie hilarante.", "genre": "Comédie", "rating": 7.1, "poster_url": "https://via.placeholder.com/300x450?text=Rires+Garantis"},
+            {"title": "Le Bonheur Simple", "description": "Une histoire réconfortante.", "genre": "Comédie", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=Le+Bonheur+Simple"},
+            {"title": "Soleil et Joie", "description": "Film ensoleillé.", "genre": "Comédie", "rating": 7.3, "poster_url": "https://via.placeholder.com/300x450?text=Soleil+et+Joie"},
+            {"title": "Éclats de Rire", "description": "Comédie légère.", "genre": "Comédie", "rating": 6.7, "poster_url": "https://via.placeholder.com/300x450?text=Eclats+de+Rire"},
+            {"title": "La Vie en Rose", "description": "Optimisme et bonne humeur.", "genre": "Comédie", "rating": 7.4, "poster_url": "https://via.placeholder.com/300x450?text=La+Vie+en+Rose"}
         ],
         "heureux": [
-            {"title": "Voyage en fête", "description": "Aventure joyeuse.", "genre": "Aventure", "rating": 7.5, "poster_url": "https://via.placeholder.com/300x450?text=Voyage+en+fete"}
+            {"title": "Voyage en fête", "description": "Aventure joyeuse.", "genre": "Aventure", "rating": 7.5, "poster_url": "https://via.placeholder.com/300x450?text=Voyage+en+fete"},
+            {"title": "Horizons Lointains", "description": "Découverte et émerveillement.", "genre": "Aventure", "rating": 7.8, "poster_url": "https://via.placeholder.com/300x450?text=Horizons+Lointains"},
+            {"title": "L'Esprit d'Aventure", "description": "Exploration passionnante.", "genre": "Aventure", "rating": 7.6, "poster_url": "https://via.placeholder.com/300x450?text=LEsprit+dAventure"},
+            {"title": "Chemins de Joie", "description": "Parcours inspirant.", "genre": "Aventure", "rating": 7.2, "poster_url": "https://via.placeholder.com/300x450?text=Chemins+de+Joie"},
+            {"title": "Découvertes", "description": "Nouvelles expériences.", "genre": "Aventure", "rating": 7.0, "poster_url": "https://via.placeholder.com/300x450?text=Decouvertes"},
+            {"title": "Le Monde Attend", "description": "Aventure épique.", "genre": "Aventure", "rating": 7.7, "poster_url": "https://via.placeholder.com/300x450?text=Le+Monde+Attend"},
+            {"title": "Étapes Heureuses", "description": "Voyage émotionnel.", "genre": "Aventure", "rating": 7.3, "poster_url": "https://via.placeholder.com/300x450?text=Etapes+Heureuses"},
+            {"title": "Lumières Nouvelles", "description": "Éclairage positif.", "genre": "Aventure", "rating": 7.1, "poster_url": "https://via.placeholder.com/300x450?text=Lumieres+Nouvelles"}
         ],
         "très triste": [
-            {"title": "Nuit Silencieuse", "description": "Drame contemplatif.", "genre": "Drame", "rating": 7.9, "poster_url": "https://via.placeholder.com/300x450?text=Nuit+Silencieuse"}
+            {"title": "Nuit Silencieuse", "description": "Drame contemplatif.", "genre": "Drame", "rating": 7.9, "poster_url": "https://via.placeholder.com/300x450?text=Nuit+Silencieuse"},
+            {"title": "Larmes Secrètes", "description": "Émotions profondes.", "genre": "Drame", "rating": 8.1, "poster_url": "https://via.placeholder.com/300x450?text=Larmes+Secretes"},
+            {"title": "L'Adieu", "description": "Séparation douloureuse.", "genre": "Drame", "rating": 7.8, "poster_url": "https://via.placeholder.com/300x450?text=LAdieu"},
+            {"title": "Mélancolie", "description": "Réflexion intime.", "genre": "Drame", "rating": 7.6, "poster_url": "https://via.placeholder.com/300x450?text=Melancolie"},
+            {"title": "Ombres du Passé", "description": "Souvenirs douloureux.", "genre": "Drame", "rating": 7.7, "poster_url": "https://via.placeholder.com/300x450?text=Ombres+du+Passe"},
+            {"title": "Le Poids des Mots", "description": "Drame poignant.", "genre": "Drame", "rating": 8.0, "poster_url": "https://via.placeholder.com/300x450?text=Le+Poids+des+Mots"},
+            {"title": "Solitude", "description": "Isolement émotionnel.", "genre": "Drame", "rating": 7.5, "poster_url": "https://via.placeholder.com/300x450?text=Solitude"},
+            {"title": "Cœur Brisé", "description": "Perte et acceptation.", "genre": "Drame", "rating": 7.9, "poster_url": "https://via.placeholder.com/300x450?text=Coeur+Brise"}
         ],
         "amoureux": [
-            {"title": "Coeurs Entrelacés", "description": "Romance touchante.", "genre": "Romance", "rating": 7.0, "poster_url": "https://via.placeholder.com/300x450?text=Coeurs+Entrelaces"}
+            {"title": "Coeurs Entrelacés", "description": "Romance touchante.", "genre": "Romance", "rating": 7.0, "poster_url": "https://via.placeholder.com/300x450?text=Coeurs+Entrelaces"},
+            {"title": "Premier Regard", "description": "Rencontre magique.", "genre": "Romance", "rating": 7.4, "poster_url": "https://via.placeholder.com/300x450?text=Premier+Regard"},
+            {"title": "L'Amour en Fleurs", "description": "Romance printanière.", "genre": "Romance", "rating": 7.2, "poster_url": "https://via.placeholder.com/300x450?text=LAmour+en+Fleurs"},
+            {"title": "Sous les Étoiles", "description": "Nuit romantique.", "genre": "Romance", "rating": 7.6, "poster_url": "https://via.placeholder.com/300x450?text=Sous+les+Etoiles"},
+            {"title": "Passion Éternelle", "description": "Amour durable.", "genre": "Romance", "rating": 7.3, "poster_url": "https://via.placeholder.com/300x450?text=Passion+Eternelle"},
+            {"title": "Deux Destins", "description": "Rencontre du destin.", "genre": "Romance", "rating": 7.5, "poster_url": "https://via.placeholder.com/300x450?text=Deux+Destins"},
+            {"title": "Le Baiser", "description": "Moment parfait.", "genre": "Romance", "rating": 7.1, "poster_url": "https://via.placeholder.com/300x450?text=Le+Baiser"},
+            {"title": "Cœur à Cœur", "description": "Intimité romantique.", "genre": "Romance", "rating": 7.4, "poster_url": "https://via.placeholder.com/300x450?text=Coeur+a+Coeur"}
         ],
         "énervé": [
-            {"title": "Tempête Urbaine", "description": "Action intense.", "genre": "Action", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=Tempete+Urbaine"}
+            {"title": "Tempête Urbaine", "description": "Action intense.", "genre": "Action", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=Tempete+Urbaine"},
+            {"title": "Rage Contrôlée", "description": "Tension explosive.", "genre": "Action", "rating": 7.2, "poster_url": "https://via.placeholder.com/300x450?text=Rage+Controlee"},
+            {"title": "Fureur", "description": "Conflit intense.", "genre": "Action", "rating": 7.0, "poster_url": "https://via.placeholder.com/300x450?text=Fureur"},
+            {"title": "Révolte", "description": "Résistance.", "genre": "Action", "rating": 7.3, "poster_url": "https://via.placeholder.com/300x450?text=Revolte"},
+            {"title": "L'Explosion", "description": "Action brutale.", "genre": "Action", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=LExplosion"},
+            {"title": "Combat Final", "description": "Confrontation ultime.", "genre": "Action", "rating": 7.1, "poster_url": "https://via.placeholder.com/300x450?text=Combat+Final"},
+            {"title": "Vengeance", "description": "Justice personnelle.", "genre": "Action", "rating": 7.4, "poster_url": "https://via.placeholder.com/300x450?text=Vengeance"},
+            {"title": "Intensité", "description": "Action pure.", "genre": "Action", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=Intensite"}
         ],
         "peur": [
-            {"title": "Ombres", "description": "Film d'horreur pour frissonner.", "genre": "Horreur", "rating": 6.4, "poster_url": "https://via.placeholder.com/300x450?text=Ombres"}
+            {"title": "Ombres", "description": "Film d'horreur pour frissonner.", "genre": "Horreur", "rating": 6.4, "poster_url": "https://via.placeholder.com/300x450?text=Ombres"},
+            {"title": "La Maison Hantée", "description": "Terreur nocturne.", "genre": "Horreur", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=La+Maison+Hantee"},
+            {"title": "Cri dans la Nuit", "description": "Suspense terrifiant.", "genre": "Horreur", "rating": 6.6, "poster_url": "https://via.placeholder.com/300x450?text=Cri+dans+la+Nuit"},
+            {"title": "L'Inconnu", "description": "Mystère effrayant.", "genre": "Horreur", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=LInconnu"},
+            {"title": "Frissons", "description": "Peur constante.", "genre": "Horreur", "rating": 6.5, "poster_url": "https://via.placeholder.com/300x450?text=Frissons"},
+            {"title": "L'Épouvante", "description": "Horreur psychologique.", "genre": "Horreur", "rating": 6.7, "poster_url": "https://via.placeholder.com/300x450?text=LEpouvante"},
+            {"title": "Ténèbres", "description": "Obscurité menaçante.", "genre": "Horreur", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Tenebres"},
+            {"title": "Le Cauchemar", "description": "Terreur onirique.", "genre": "Horreur", "rating": 6.6, "poster_url": "https://via.placeholder.com/300x450?text=Le+Cauchemar"}
         ],
         "neutre": [
-            {"title": "Le Voyage", "description": "Film universel pour tous les goûts.", "genre": "Aventure", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Le+Voyage"}
+            {"title": "Le Voyage", "description": "Film universel pour tous les goûts.", "genre": "Aventure", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Le+Voyage"},
+            {"title": "Équilibre", "description": "Histoire équilibrée.", "genre": "Drame", "rating": 7.0, "poster_url": "https://via.placeholder.com/300x450?text=Equilibre"},
+            {"title": "Moment Présent", "description": "Réflexion calme.", "genre": "Drame", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=Moment+Present"},
+            {"title": "Sérénité", "description": "Paix intérieure.", "genre": "Drame", "rating": 7.1, "poster_url": "https://via.placeholder.com/300x450?text=Serenite"},
+            {"title": "L'Horizon", "description": "Vue d'ensemble.", "genre": "Aventure", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=LHorizon"},
+            {"title": "Calme", "description": "Tranquillité.", "genre": "Drame", "rating": 7.0, "poster_url": "https://via.placeholder.com/300x450?text=Calme"},
+            {"title": "Perspective", "description": "Point de vue neutre.", "genre": "Drame", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Perspective"},
+            {"title": "L'Essentiel", "description": "Simplicité.", "genre": "Drame", "rating": 7.1, "poster_url": "https://via.placeholder.com/300x450?text=LEssentiel"}
         ]
     }
 
@@ -135,6 +185,9 @@ def get_films_by_mood_api():
                                 movie['poster_url'] = tmdb_url
                             else:
                                 movie['poster_url'] = make_no_poster_data_url(movie.get('title'))
+                # Limit results if specified
+                if limit and len(movies_list) > limit:
+                    movies_list = movies_list[:limit]
                 return jsonify(movies_list)
     except Exception:
         # If anything goes wrong while accessing DB, fall back to demo mapping
@@ -159,6 +212,9 @@ def get_films_by_mood_api():
             'rating': f.get('rating'),
             'poster_url': poster
         })
+    # Limit results if specified
+    if limit and len(enriched) > limit:
+        enriched = enriched[:limit]
     return jsonify(enriched)
 
 
