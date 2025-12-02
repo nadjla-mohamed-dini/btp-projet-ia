@@ -207,9 +207,78 @@
                 if (!firstItem) return;
                 
                 const itemWidth = firstItem.offsetWidth;
-                const gap = 16;
+                const gap = 20;
                 const translateX = -(carouselState.currentIndex * (itemWidth + gap));
                 track.style.transform = `translateX(${translateX}px)`;
+            }
+
+            // Auto-hide scroll buttons
+            let hideButtonsTimeout;
+            function showButtons() {
+                if (prevBtn) prevBtn.style.opacity = '1';
+                if (prevBtn) prevBtn.style.visibility = 'visible';
+                if (nextBtn) nextBtn.style.opacity = '1';
+                if (nextBtn) nextBtn.style.visibility = 'visible';
+                
+                clearTimeout(hideButtonsTimeout);
+                hideButtonsTimeout = setTimeout(() => {
+                    if (prevBtn) prevBtn.style.opacity = '0';
+                    if (prevBtn) prevBtn.style.visibility = 'hidden';
+                    if (nextBtn) nextBtn.style.opacity = '0';
+                    if (nextBtn) nextBtn.style.visibility = 'hidden';
+                }, 3000);
+            }
+
+            function hideButtons() {
+                if (prevBtn) prevBtn.style.opacity = '0';
+                if (prevBtn) prevBtn.style.visibility = 'hidden';
+                if (nextBtn) nextBtn.style.opacity = '0';
+                if (nextBtn) nextBtn.style.visibility = 'hidden';
+            }
+
+            // Mouse parallax for 3D effects
+            function handleMouseMove(e) {
+                const items = track.querySelectorAll('.carousel-item');
+                items.forEach((item) => {
+                    const rect = item.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    
+                    const mouseX = e.clientX;
+                    const mouseY = e.clientY;
+                    
+                    const deltaX = (mouseX - centerX) / rect.width;
+                    const deltaY = (mouseY - centerY) / rect.height;
+                    
+                    const rotateY = deltaX * 8;
+                    const rotateX = -deltaY * 8;
+                    
+                    if (item.matches(':hover')) {
+                        const wrapper = item.querySelector('.poster-wrapper');
+                        if (wrapper && !item.classList.contains('selected')) {
+                            wrapper.style.transform = `
+                                translateY(-16px) 
+                                translateZ(30px)
+                                scale(1.08)
+                                rotateY(${rotateY}deg)
+                                rotateX(${rotateX}deg)
+                            `;
+                        }
+                    }
+                });
+            }
+
+            // Mouse leave - reset transforms
+            function handleMouseLeave() {
+                const items = track.querySelectorAll('.carousel-item');
+                items.forEach((item) => {
+                    if (!item.classList.contains('selected')) {
+                        const wrapper = item.querySelector('.poster-wrapper');
+                        if (wrapper) {
+                            wrapper.style.transform = '';
+                        }
+                    }
+                });
             }
 
             // Navigate carousel
@@ -267,11 +336,30 @@
 
             // Button handlers
             if (prevBtn) {
-                prevBtn.addEventListener('click', () => moveCarousel('prev'));
+                prevBtn.addEventListener('click', () => {
+                    moveCarousel('prev');
+                    showButtons();
+                });
+                prevBtn.addEventListener('mouseenter', showButtons);
             }
             if (nextBtn) {
-                nextBtn.addEventListener('click', () => moveCarousel('next'));
+                nextBtn.addEventListener('click', () => {
+                    moveCarousel('next');
+                    showButtons();
+                });
+                nextBtn.addEventListener('mouseenter', showButtons);
             }
+
+            // Show buttons on carousel hover
+            carousel.addEventListener('mouseenter', showButtons);
+            carousel.addEventListener('mouseleave', () => {
+                clearTimeout(hideButtonsTimeout);
+                hideButtonsTimeout = setTimeout(hideButtons, 2000);
+            });
+
+            // Mouse parallax events
+            carousel.addEventListener('mousemove', handleMouseMove);
+            carousel.addEventListener('mouseleave', handleMouseLeave);
 
             // Keyboard navigation
             carousel.addEventListener('keydown', (e) => {
@@ -320,7 +408,14 @@
             // Window resize handler
             window.addEventListener('resize', () => {
                 updateItemsPerView();
+                updateCarouselPosition();
             });
+
+            // Initial button state - show on load, then auto-hide
+            setTimeout(() => {
+                showButtons();
+                setTimeout(hideButtons, 3000);
+            }, 500);
 
             // Expose update function
             window.updateCarouselPosition = updateCarouselPosition;
