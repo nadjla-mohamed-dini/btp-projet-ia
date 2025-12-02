@@ -1,15 +1,96 @@
-from flask import Flask, jsonify
-from models import db
+from flask import Flask, jsonify, request
+from models import db, Movie, Mood
 from config import get_config
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 app.config.from_object(get_config())
 db.init_app(app)
 
 
 @app.route('/')
 def home():
-    return jsonify({"message": "Bienvenue sur Feelflix - Application Flask avec PostgreSQL"})
+    # Serve the interactive home page
+    return app.send_static_file('accueil.html')
+
+
+def map_value_to_mood(value: int) -> str:
+    if value <= 10:
+        return 'très triste'
+    if value <= 30:
+        return 'peur'
+    if value <= 45:
+        return 'énervé'
+    if value <= 55:
+        return 'neutre'
+    if value <= 70:
+        return 'heureux'
+    if value <= 85:
+        return 'joyeux'
+    return 'amoureux'
+
+
+@app.route('/api/films')
+def get_films_by_mood_api():
+    # Accept either ?value=0-100 or ?mood=string
+    value = request.args.get('value')
+    mood = request.args.get('mood')
+    if value is not None:
+        try:
+            value = int(value)
+            mood = map_value_to_mood(value)
+        except ValueError:
+            pass
+
+    if mood:
+        mood = mood.lower()
+
+    # Simple demo mapping; replace with real DB query if needed
+    films = {
+        "joyeux": [
+            {"title": "Le Grand Saut", "description": "Une comédie optimiste.", "genre": "Comédie", "rating": 7.2, "poster_url": "https://via.placeholder.com/300x450?text=Le+Grand+Saut"},
+            {"title": "Sourires Partout", "description": "Une histoire qui redonne le sourire.", "genre": "Comédie", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Sourires+Partout"}
+        ],
+        "heureux": [
+            {"title": "Voyage en fête", "description": "Aventure joyeuse.", "genre": "Aventure", "rating": 7.5, "poster_url": "https://via.placeholder.com/300x450?text=Voyage+en+fete"}
+        ],
+        "très triste": [
+            {"title": "Nuit Silencieuse", "description": "Drame contemplatif.", "genre": "Drame", "rating": 7.9, "poster_url": "https://via.placeholder.com/300x450?text=Nuit+Silencieuse"}
+        ],
+        "amoureux": [
+            {"title": "Coeurs Entrelacés", "description": "Romance touchante.", "genre": "Romance", "rating": 7.0, "poster_url": "https://via.placeholder.com/300x450?text=Coeurs+Entrelaces"}
+        ],
+        "énervé": [
+            {"title": "Tempête Urbaine", "description": "Action intense.", "genre": "Action", "rating": 6.9, "poster_url": "https://via.placeholder.com/300x450?text=Tempete+Urbaine"}
+        ],
+        "peur": [
+            {"title": "Ombres", "description": "Film d'horreur pour frissonner.", "genre": "Horreur", "rating": 6.4, "poster_url": "https://via.placeholder.com/300x450?text=Ombres"}
+        ],
+        "neutre": [
+            {"title": "Le Voyage", "description": "Film universel pour tous les goûts.", "genre": "Aventure", "rating": 6.8, "poster_url": "https://via.placeholder.com/300x450?text=Le+Voyage"}
+        ]
+    }
+
+    # If a database exists and movies table contains entries, try to query DB first
+    try:
+        with app.app_context():
+            results = Movie.query.join(Mood).filter(Mood.mood_type == mood).all()
+            if results:
+                movies_list = []
+                for m in results:
+                    movies_list.append({
+                        'title': m.title,
+                        'description': m.description or '',
+                        'genre': m.genre or '',
+                        'rating': m.rating or 0,
+                        'poster_url': getattr(m, 'poster_url', f'https://via.placeholder.com/300x450?text={m.title.replace(" ", "+")}')
+                    })
+                return jsonify(movies_list)
+    except Exception:
+        # If anything goes wrong while accessing DB, fall back to demo mapping
+        pass
+
+    key = mood if mood in films else 'neutre'
+    return jsonify(films.get(key, []))
 
 
 @app.route('/health')

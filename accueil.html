@@ -9,10 +9,10 @@
 <body>
     <nav class="navbar">
         <div class="logo">
-            <a href="accueil.html" style="color: inherit; text-decoration: none;">🎬 Feelflix</a>
+            <a href="/" style="color: inherit; text-decoration: none;">🎬 Feelflix</a>
         </div>
         <div class="nav-links">
-            <a href="accueil.html">Accueil</a>
+            <a href="/">Accueil</a>
             <a href="#">Un voyage cinématographique</a>
             <a href="quiz.html">Quiz</a>
             <a href="#">Mon profil</a>
@@ -20,33 +20,31 @@
     </nav>
 
     <div class="container">
-        <div class="mood-slider">
-            <h2>🎬 Feelflix Mood Slider</h2>
-            <p>Comment vous sentez-vous ?</p>
-            
-            <div class="slider-container">
-                <div class="slider">
-                    <div class="slider-fill"></div>
-                    <div class="slider-handle"></div>
-                </div>
+        <div class="card">
+            <h1 class="card-title">🎬 Feelflix Mood Slider</h1>
+            <p class="card-subtitle">Comment vous sentez-vous ?</p>
+
+            <div class="slider-wrapper">
+                <input id="moodSlider" class="mood-slider" type="range" min="0" max="100" value="0">
             </div>
 
-            <div class="mood-emojis">
-                <div class="mood-emoji">😨</div>
-                <div class="mood-emoji">😄</div>
-                <div class="mood-emoji">😠</div>
-                <div class="mood-emoji">😊</div>
-                <div class="mood-emoji">😍</div>
-                <div class="mood-emoji">😳</div>
+            <div class="emoji-row" role="group" aria-label="Sélection d'humeur">
+                <button class="emoji-btn" data-value="5" title="Très triste">😢</button>
+                <button class="emoji-btn" data-value="20" title="Peur">😨</button>
+                <button class="emoji-btn" data-value="40" title="Énervé">😠</button>
+                <button class="emoji-btn" data-value="55" title="Neutre">🙂</button>
+                <button class="emoji-btn" data-value="70" title="Heureux">😂</button>
+                <button class="emoji-btn" data-value="85" title="Joyeux">😍</button>
+                <button class="emoji-btn" data-value="95" title="Amoureux">🥰</button>
             </div>
 
-            <div class="mood-label">
-                Très triste
+            <div class="mood-info">
+                <div class="mood-value" id="moodValue">0</div>
+                <div class="mood-label" id="moodLabel">Très triste</div>
             </div>
 
-            <button class="find-movie-btn">
-                Trouver un film
-            </button>
+            <button id="submitBtn" class="find-movie-btn">Trouver un film</button>
+            <div id="filmResults" class="film-results"></div>
         </div>
     </div>
 
@@ -54,4 +52,118 @@
         © 2025 Feelflix - Découvrez des films selon votre humeur | <a href="#">A propos</a>
     </footer>
 </body>
+    <script>
+        const moodSlider = document.getElementById('moodSlider');
+        const moodValue = document.getElementById('moodValue');
+        const moodLabel = document.getElementById('moodLabel');
+        const submitBtn = document.getElementById('submitBtn');
+        const filmResults = document.getElementById('filmResults');
+
+        function getMoodFromValue(value) {
+            value = parseInt(value, 10);
+            if (value <= 10) return 'très triste';
+            if (value <= 30) return 'peur';
+            if (value <= 45) return 'énervé';
+            if (value <= 55) return 'neutre';
+            if (value <= 70) return 'heureux';
+            if (value <= 85) return 'joyeux';
+            return 'amoureux';
+        }
+
+        function getLabelFromMood(mood) {
+            switch (mood) {
+                case 'très triste': return 'Très triste';
+                case 'peur': return 'Peureux';
+                case 'énervé': return 'En colère';
+                case 'neutre': return 'Neutre';
+                case 'heureux': return 'Heureux';
+                case 'joyeux': return 'Joyeux';
+                case 'amoureux': return 'Amoureux';
+                default: return 'Neutre';
+            }
+        }
+
+        const emojiButtons = document.querySelectorAll('.emoji-btn');
+
+        function updateActiveEmoji(value) {
+            // Find closest emoji data-value
+            let closest = null;
+            let smallest = Infinity;
+            emojiButtons.forEach(btn => {
+                const v = parseInt(btn.dataset.value, 10);
+                const diff = Math.abs(v - value);
+                if (diff < smallest) {
+                    smallest = diff;
+                    closest = btn;
+                }
+            });
+            if (closest) {
+                emojiButtons.forEach(b => b.classList.remove('active'));
+                closest.classList.add('active');
+            }
+        }
+
+        moodSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            moodValue.textContent = val;
+            const mood = getMoodFromValue(val);
+            moodLabel.textContent = getLabelFromMood(mood);
+            updateActiveEmoji(parseInt(val, 10));
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            const val = moodSlider.value;
+            const mood = getMoodFromValue(val);
+            // call API to get films for this mood
+            try {
+                const resp = await fetch(`/api/films?value=${val}&mood=${encodeURIComponent(mood)}`);
+                if (!resp.ok) throw new Error('Erreur lors de la récupération des films');
+                const films = await resp.json();
+                renderFilms(films);
+            } catch (error) {
+                filmResults.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+                console.error(error);
+            }
+        });
+
+        // Emoji buttons interaction
+        emojiButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const v = parseInt(btn.dataset.value, 10);
+                moodSlider.value = v;
+                moodSlider.dispatchEvent(new Event('input'));
+                // update active class handled by updateActiveEmoji
+            });
+        });
+
+        // initialize active emoji and mood label on load
+        // Initialize UI (also done on DOMContentLoaded as fallback)
+        const initialVal = parseInt(moodSlider.value, 10);
+        moodValue.textContent = initialVal;
+        moodLabel.textContent = getLabelFromMood(getMoodFromValue(initialVal));
+        updateActiveEmoji(initialVal);
+        document.addEventListener('DOMContentLoaded', () => {
+            const val = parseInt(moodSlider.value, 10);
+            moodValue.textContent = val;
+            moodLabel.textContent = getLabelFromMood(getMoodFromValue(val));
+            updateActiveEmoji(val);
+        });
+
+        function renderFilms(films) {
+            if (!films || films.length === 0) {
+                filmResults.innerHTML = '<p>Aucun film trouvé pour cette humeur.</p>';
+                return;
+            }
+            filmResults.innerHTML = films.map(movie => `
+                <div class="film-card" style="display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;">
+                    <img src="${movie.poster_url}" alt="${movie.title}" style="width:96px; height:144px; object-fit:cover; border-radius:6px;">
+                    <div>
+                        <h3 style="margin:0">${movie.title}</h3>
+                        <p style="margin:6px 0; color:#666">${movie.genre} • Note: ${movie.rating}</p>
+                        <p style="margin:0">${movie.description}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
 </html>

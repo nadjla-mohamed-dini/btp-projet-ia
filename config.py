@@ -21,15 +21,20 @@ class DevelopmentConfig(Config):
     TESTING = False
     SQLALCHEMY_ECHO = True
     
-    DB_USER = os.environ.get('DB_USER') or 'postgres'
-    DB_PASSWORD = os.environ.get('DB_PASSWORD') or 'password'
-    DB_HOST = os.environ.get('DB_HOST') or 'localhost'
+    # If DB env vars are present, try to use Postgres. Otherwise, use a local SQLite DB for dev.
+    DB_USER = os.environ.get('DB_USER')
+    DB_PASSWORD = os.environ.get('DB_PASSWORD')
+    DB_HOST = os.environ.get('DB_HOST')
     DB_PORT = os.environ.get('DB_PORT') or 5432
-    DB_NAME = 'Feelflix'
-    
-    SQLALCHEMY_DATABASE_URI = (
-        f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-    )
+    DB_NAME = os.environ.get('DB_NAME') or 'Feelflix'
+
+    if all([DB_USER, DB_PASSWORD, DB_HOST]):
+        SQLALCHEMY_DATABASE_URI = (
+            f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        )
+    else:
+        # fallback to sqlite file to allow local dev without Postgres/psycopg2 installed
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///dev.db'
 
 
 class ProductionConfig(Config):
@@ -43,8 +48,7 @@ class ProductionConfig(Config):
     DB_PORT = os.environ.get('DB_PORT') or 5432
     DB_NAME = 'Feelflix'
     
-    if not all([DB_USER, DB_PASSWORD, DB_HOST]):
-        raise ValueError('Variables d\'environnement DB_USER, DB_PASSWORD et DB_HOST requises')
+    # NOTE: don't raise here at import time — perform validation in `get_config`
     
     SQLALCHEMY_DATABASE_URI = (
         f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
@@ -72,4 +76,14 @@ def get_config(env=None):
         'testing': TestingConfig
     }
     
+    # If production selected, ensure required DB env vars are present
+    if env == 'production':
+        prod_cfg = config_map.get('production')
+        # read required values from environment
+        DB_USER = os.environ.get('DB_USER')
+        DB_PASSWORD = os.environ.get('DB_PASSWORD')
+        DB_HOST = os.environ.get('DB_HOST')
+        if not all([DB_USER, DB_PASSWORD, DB_HOST]):
+            raise ValueError("Variables d'environnement DB_USER, DB_PASSWORD et DB_HOST requises pour l'environnement de production")
+
     return config_map.get(env, DevelopmentConfig)

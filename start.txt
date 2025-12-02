@@ -1,0 +1,2 @@
+python quiz_api.py
+Puis ouvrez http://localhost:5000 dans votre navigateur.
