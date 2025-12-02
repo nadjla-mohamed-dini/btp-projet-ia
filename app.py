@@ -1,4 +1,6 @@
 from flask import Flask, jsonify, request
+import os
+import requests
 from models import db, Movie, Mood
 from config import get_config
 
@@ -71,6 +73,24 @@ def get_films_by_mood_api():
     }
 
     # If a database exists and movies table contains entries, try to query DB first
+    def fetch_tmdb_poster(title: str):
+        api_key = os.environ.get('TMDB_API_KEY')
+        if not api_key or not title:
+            return None
+        try:
+            url = 'https://api.themoviedb.org/3/search/movie'
+            params = {'api_key': api_key, 'query': title, 'language': 'fr-FR'}
+            resp = requests.get(url, params=params, timeout=4)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('results'):
+                    poster_path = data['results'][0].get('poster_path')
+                    if poster_path:
+                        return f'https://image.tmdb.org/t/p/w500{poster_path}'
+        except Exception:
+            pass
+        return None
+
     try:
         with app.app_context():
             results = Movie.query.join(Mood).filter(Mood.mood_type == mood).all()
@@ -82,8 +102,16 @@ def get_films_by_mood_api():
                         'description': m.description or '',
                         'genre': m.genre or '',
                         'rating': m.rating or 0,
-                        'poster_url': getattr(m, 'poster_url', f'https://via.placeholder.com/300x450?text={m.title.replace(" ", "+")}')
+                        'poster_url': getattr(m, 'poster_url', None)
                     })
+                # Enrich with TMDB poster when missing
+                for movie in movies_list:
+                    if not movie.get('poster_url'):
+                        tmdb_url = fetch_tmdb_poster(movie.get('title'))
+                        if tmdb_url:
+                            movie['poster_url'] = tmdb_url
+                        else:
+                            movie['poster_url'] = f'https://via.placeholder.com/300x450?text={movie.get("title", "Movie").replace(" ", "+")}'
                 return jsonify(movies_list)
     except Exception:
         # If anything goes wrong while accessing DB, fall back to demo mapping

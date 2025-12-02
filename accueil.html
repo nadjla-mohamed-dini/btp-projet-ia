@@ -29,7 +29,7 @@
             </div>
 
             <div class="emoji-row" role="group" aria-label="Sélection d'humeur">
-                <button class="emoji-btn" data-value="5" title="Très triste">😢</button>
+                <button type="button" class="emoji-btn" data-value="5" title="Très triste" aria-pressed="false">😢</button>
                 <button class="emoji-btn" data-value="20" title="Peur">😨</button>
                 <button class="emoji-btn" data-value="40" title="Énervé">😠</button>
                 <button class="emoji-btn" data-value="55" title="Neutre">🙂</button>
@@ -98,8 +98,9 @@
                 }
             });
             if (closest) {
-                emojiButtons.forEach(b => b.classList.remove('active'));
+                emojiButtons.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
                 closest.classList.add('active');
+                closest.setAttribute('aria-pressed','true');
             }
         }
 
@@ -128,6 +129,14 @@
 
         // Emoji buttons interaction
         emojiButtons.forEach(btn => {
+            btn.setAttribute('role','button');
+            btn.setAttribute('aria-pressed','false');
+            btn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    btn.click();
+                }
+            });
             btn.addEventListener('click', (e) => {
                 const v = parseInt(btn.dataset.value, 10);
                 moodSlider.value = v;
@@ -154,16 +163,21 @@
                 filmResults.innerHTML = '<p>Aucun film trouvé pour cette humeur.</p>';
                 return;
             }
-            filmResults.innerHTML = films.map(movie => `
-                <div class="film-card" style="display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;">
-                    <img src="${movie.poster_url}" alt="${movie.title}" style="width:96px; height:144px; object-fit:cover; border-radius:6px;">
-                    <div>
-                        <h3 style="margin:0">${movie.title}</h3>
-                        <p style="margin:6px 0; color:#666">${movie.genre} • Note: ${movie.rating}</p>
-                        <p style="margin:0">${movie.description}</p>
+            // build a responsive grid to display posters
+            const tiles = films.map(movie => `
+                <div class="film-tile" role="article">
+                    <a href="https://www.themoviedb.org/search?query=${encodeURIComponent(movie.title)}" target="_blank" rel="noopener noreferrer">
+                      <img loading="lazy" src="${movie.poster_url}" alt="${movie.title}">
+                    </a>
+                    <div class="meta">
+                        <h4>${movie.title}</h4>
+                        <p>${movie.genre} • Note: ${movie.rating}</p>
                     </div>
                 </div>
             `).join('');
+
+            // Use grid by default. On narrow screens this behaves like a carousel if there's many tiles.
+            filmResults.innerHTML = `<div class="film-grid">${tiles}</div>`;
         }
     </script>
 </html>

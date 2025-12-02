@@ -1,0 +1,5 @@
+Flask>=2.0
+Flask-SQLAlchemy>=3.0
+requests>=2.25
+psycopg2-binary>=2.9  # optional, only for Postgres
+python-dotenv>=1.0  # optional, helpful for local env
