@@ -91,34 +91,75 @@ def get_films_by_mood_api():
             pass
         return None
 
+    def make_no_poster_data_url(title: str) -> str:
+            # small SVG fallback so the browser always finds an image
+            if not title:
+                title = 'No poster'
+            svg = (
+                f"<svg xmlns='http://www.w3.org/2000/svg' width='300' height='450' viewBox='0 0 300 450'>"
+                "<rect width='100%' height='100%' fill='%23f3f4f6'/>"
+                f"<text x='50%' y='50%' font-size='16' text-anchor='middle' fill='%23666' font-family='Arial, Helvetica, sans-serif' dy='.3em'>{title}</text>"
+                "</svg>"
+            )
+            import urllib.parse
+            data = 'data:image/svg+xml;utf8,' + urllib.parse.quote(svg)
+            return data
+
+    def is_placeholder_url(url: str) -> bool:
+        if not url:
+            return True
+        url = url.lower()
+        return ('placeholder.com' in url) or ('via.placeholder' in url)
+
     try:
         with app.app_context():
             results = Movie.query.join(Mood).filter(Mood.mood_type == mood).all()
             if results:
                 movies_list = []
                 for m in results:
+                    poster = getattr(m, 'poster_url', None)
+                    if is_placeholder_url(poster):
+                        poster = None
                     movies_list.append({
                         'title': m.title,
                         'description': m.description or '',
                         'genre': m.genre or '',
                         'rating': m.rating or 0,
-                        'poster_url': getattr(m, 'poster_url', None)
+                        'poster_url': poster
                     })
                 # Enrich with TMDB poster when missing
                 for movie in movies_list:
-                    if not movie.get('poster_url'):
-                        tmdb_url = fetch_tmdb_poster(movie.get('title'))
-                        if tmdb_url:
-                            movie['poster_url'] = tmdb_url
-                        else:
-                            movie['poster_url'] = f'https://via.placeholder.com/300x450?text={movie.get("title", "Movie").replace(" ", "+")}'
+                        if not movie.get('poster_url'):
+                            tmdb_url = fetch_tmdb_poster(movie.get('title'))
+                            if tmdb_url:
+                                movie['poster_url'] = tmdb_url
+                            else:
+                                movie['poster_url'] = make_no_poster_data_url(movie.get('title'))
                 return jsonify(movies_list)
     except Exception:
         # If anything goes wrong while accessing DB, fall back to demo mapping
         pass
 
     key = mood if mood in films else 'neutre'
-    return jsonify(films.get(key, []))
+    demo_list = films.get(key, [])
+    # Enrich demo mapping posters with TMDB posters if placeholder used
+    enriched = []
+    for f in demo_list:
+        poster = f.get('poster_url')
+        if is_placeholder_url(poster):
+            tmdb_p = fetch_tmdb_poster(f.get('title'))
+            if tmdb_p:
+                poster = tmdb_p
+            else:
+                poster = make_no_poster_data_url(f.get('title'))
+        enriched.append({
+            'title': f.get('title'),
+            'description': f.get('description'),
+            'genre': f.get('genre'),
+            'rating': f.get('rating'),
+            'poster_url': poster
+        })
+    return jsonify(enriched)
 
 
 @app.route('/health')
