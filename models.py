@@ -83,3 +83,32 @@ class Profile(db.Model):
     
     def __repr__(self):
         return f'<Profile user_id={self.user_id}>'
+
+
+class VoyageFilm(db.Model):
+    __tablename__ = 'voyage_films'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    destination = db.Column(db.String(50), nullable=False)  # paris, newyork, tokyo
+    year = db.Column(db.Integer)
+    description = db.Column(db.Text)
+    poster_url = db.Column(db.String(255))
+    
+    platforms = db.relationship('StreamingPlatform', backref='film', lazy=True, cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<VoyageFilm {self.title}>'
+
+
+class StreamingPlatform(db.Model):
+    __tablename__ = 'streaming_platforms'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    film_id = db.Column(db.Integer, db.ForeignKey('voyage_films.id'), nullable=False)
+    platform_name = db.Column(db.String(50), nullable=False)  # netflix, disney, prime, hulu, apple, canal, crunchyroll
+    platform_url = db.Column(db.String(255))
+    platform_logo = db.Column(db.String(255))  # URL du logo
+    
+    def __repr__(self):
+        return f'<StreamingPlatform {self.platform_name}>'

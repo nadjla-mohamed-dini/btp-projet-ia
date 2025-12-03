@@ -1,18 +1,52 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, jsonify, render_template, request, session, redirect, url_for, send_from_directory
+import psycopg2
 from models import db
 from config import get_config
 from dotenv import load_dotenv
 from sqlalchemy import text
-from models import Mood, Movie, User, Profile
+from models import Mood, Movie, User, Profile, VoyageFilm, StreamingPlatform
 from flask_migrate import Migrate
 from quiz.quiz_api import get_questions
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from urllib.parse import quote_plus
+import sys
 import os
+from tmdb_utils import add_popular_movies_to_db, fetch_new_movies
 
+
+from seed_tmdb_auto import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+
+import requests
+
+API_KEY = os.getenv("TMDB_API_KEY")
+BASE_URL = "https://api.themoviedb.org/3"
+
+def fetch_new_movies(destination, limit=5):
+    """Récupère des films populaires depuis TMDb pour une destination donnée"""
+    url = f"{BASE_URL}/discover/movie"
+    params = {
+        "api_key": API_KEY,
+        "sort_by": "popularity.desc",
+        "language": "fr-FR",
+        "page": 1,
+        "region": "FR"
+    }
+
+    if destination == "paris":
+        params["with_keywords"] = "Paris"
+    elif destination == "tokyo":
+        params["with_keywords"] = "Tokyo"
+    elif destination == "newyork":
+        params["with_keywords"] = "New York"
+
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        return response.json().get("results", [])[:limit]
+    return []
 
 
 
@@ -38,7 +72,8 @@ db_host = os.environ.get('DB_HOST', 'localhost')
 db_port = os.environ.get('DB_PORT', 5432)
 db_name = os.environ.get('DB_NAME', 'Fellflix')
 
-database_url = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+# URL-encode the password to handle special characters
+database_url = f'postgresql://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_name}'
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-secret-key'
@@ -214,11 +249,22 @@ def uploaded_file(filename):
 @app.route('/api/movies')
 def get_movies():
     mood = request.args.get('mood')
+
+    # Ajouter automatiquement des films populaires en DB
+    add_popular_movies_to_db(limit=5)
+
     if mood:
         moods = Mood.query.filter_by(mood_type=mood).all()
         movies = []
         for m in moods:
-            movies.extend([movie.__dict__ for movie in m.movies])
+            movies.extend([{
+                'id': movie.id,
+                'title': movie.title,
+                'description': movie.description,
+                'genre': movie.genre,
+                'rating': movie.rating,
+                'poster_url': movie.poster_url
+            } for movie in m.movies])
         return jsonify(movies)
     else:
         movies = Movie.query.all()
@@ -228,8 +274,9 @@ def get_movies():
             'description': m.description,
             'genre': m.genre,
             'rating': m.rating,
-            'image_url': m.image_url
+            'poster_url': m.poster_url
         } for m in movies])
+
 
 @app.route('/health')
 def health():
@@ -247,21 +294,31 @@ def get_films_by_mood(mood_type):
     if not mood:
         return jsonify({'error': 'Mood not found'}), 404
 
-    films = Movie.query.filter_by(mood_id=mood.id).limit(5).all()
-    return jsonify([
-    {
+    # Ajouter des films populaires liés à ce mood
+    add_popular_movies_to_db(mood.id, limit=5)
+
+    # Récupérer les films liés à ce mood (y compris les populaires insérés)
+    films = Movie.query.filter_by(mood_id=mood.id).order_by(Movie.rating.desc()).limit(10).all()
+
+    return jsonify([{
         "title": film.title,
         "description": film.description,
         "genre": film.genre,
         "rating": film.rating,
         "poster_url": film.poster_url
-    }
-    for film in films
-])
+    } for film in films])
+
+
 @app.route('/quiz')
 def quiz():
     return render_template('quiz.html')
 
+@app.route("/vc")
+def voyage():
+    return render_template("voyage_cinematographique.html")
+
+
+from flask import render_template
 
 @app.route('/api/questions')
 def api_questions():
@@ -285,6 +342,82 @@ def verifier_reponse():
         "correct": reponse_index == bonne_reponse_index,
         "bonneReponse": bonne_reponse_texte
     })
+
+
+@app.route('/voyage/<destination>')
+def voyage_detail(destination):
+    """Affiche les films liés à une destination"""
+    from models import VoyageFilm
+    
+    # Valider la destination
+    if destination not in ['paris', 'newyork', 'tokyo']:
+        return redirect('/vc')
+    
+    # Récupérer les films pour cette destination depuis la BD
+    films = VoyageFilm.query.filter_by(destination=destination).all()
+    
+    return render_template('voyage_detail.html', destination=destination, films=films)
+
+
+@app.route('/annee/<int:year>')
+def annee_detail(year):
+    """Affiche les films d'une année donnée"""
+    from models import VoyageFilm
+    
+    # Valider l'année
+    if year not in [1990, 2000, 2010]:
+        return redirect('/vc')
+    
+    # Chercher les films avec la destination "years_YYYY"
+    year_dest = f'years_{year}'
+    films = VoyageFilm.query.filter_by(destination=year_dest).all()
+    
+    return render_template('annee_detail.html', year=year, films=films)
+
+#teste pour rafraichir les films depuis TMDB
+@app.route('/refresh_films/<destination>', methods=['POST'])
+def refresh_films(destination):
+    conn = psycopg2.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD
+    )
+    cursor = conn.cursor()
+
+    # Récupérer des films depuis TMDb
+    new_movies = fetch_new_movies(destination)
+
+    for m in new_movies:
+        title = m.get("title")
+        year = m.get("release_date", "")[:4]
+        description = m.get("overview")
+        poster_url = f"https://image.tmdb.org/t/p/w500{m['poster_path']}" if m.get("poster_path") else None
+
+        cursor.execute(
+            """
+            INSERT INTO voyage_films (title, destination, year, description, poster_url)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (title) DO NOTHING;
+            """,
+            (title, destination, year, description, poster_url)
+        )
+
+    conn.commit()
+
+    # Tirer 5 films aléatoires (anciens + nouveaux)
+    cursor.execute(
+        "SELECT title, poster_url, description, year FROM voyage_films WHERE destination = %s ORDER BY RANDOM() LIMIT 5;",
+        (destination,)
+    )
+    films = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return jsonify([
+        {"title": f[0], "poster_url": f[1], "description": f[2], "year": f[3]} for f in films
+    ])
 
 
 
