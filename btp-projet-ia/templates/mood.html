@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Slider - Feelflix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 80px;
+            padding-top: 100px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 90vw;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .mood-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 15px;
+            color: #555;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .slider-container {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #ff6b6b, #ffd93d, #6bcf7f);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .mood-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            width: 100%;
+            height: 600px;
+        }
+
+        .circular-slider {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #ff6b6b 0deg,
+                #ffd93d 60deg,
+                #6bcf7f 120deg,
+                #667eea 180deg,
+                #764ba2 240deg,
+                #ff6b6b 360deg
+            );
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), inset 0 2px 5px rgba(255, 255, 255, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .circular-slider::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .slider-center {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider-emoji {
+            font-size: 45px;
+            line-height: 1;
+        }
+
+        .slider-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        .mood-emoji {
+            display: none;
+        }
+
+        .mood-value {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .mood-label {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #888;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">🎬 Feelflix</div>
+        <nav>
+            <a href="/mood" class="active">Accueil</a>
+            <a href="/vc" >Un voyage cinématographique</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/profile">Mon profil</a>
+        </nav>
+    </header>
+    <div class="container">
+        <h1>🎬 Feelflix Mood Slider</h1>
+        
+        <div class="mood-section">
+            <label for="moodSlider">Comment vous sentez-vous ?</label>
+            
+            <div class="mood-display">
+                <canvas id="moodRadar" width="600" height="600" style="max-width:100%; width:100%;"></canvas>
+            </div>
+
+            <div class="mood-label" id="moodLabel">Neutre</div>
+        </div>
+
+        <button id="submitBtn">Trouver un film</button>
+
+        <div class="info">
+            <strong>💡 Astuce :</strong> Cliquez sur le radar pour sélectionner une ou plusieurs émotions.
+            Nous vous recommanderons des films en fonction de votre état d'esprit !
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const moodData = [
+            { value: 0, emoji: '😭', label: 'Très triste' },
+            { value: 17, emoji: '😢', label: 'Triste' },
+            { value: 33, emoji: '😂', label: 'Joyeux' },
+            { value: 50, emoji: '🙂', label: 'Neutre' },
+            { value: 67, emoji: '😁', label: 'Heureux' },
+            { value: 83, emoji: '😍', label: 'Amoureux' },
+            { value: 100, emoji: '😨', label: 'Peur' }
+        ];
+
+        const moodLabelEl = document.getElementById('moodLabel');
+        const submitBtn = document.getElementById('submitBtn');
+        const canvas = document.getElementById('moodRadar');
+
+        // Support multiple selected emotions
+        let selected = new Set([3]); // default to Neutre
+
+        function updateDisplay() {
+            const selectedArr = Array.from(selected);
+            const labelsSelected = selectedArr.map(i => moodData[i].label);
+            const values = selectedArr.map(i => moodData[i].value);
+            const avg = values.length ? Math.round(values.reduce((a,b) => a + b, 0) / values.length) : 50;
+
+            moodLabelEl.textContent = labelsSelected.length ? labelsSelected.join(', ') : 'Neutre';
+
+            radarChart.data.datasets[0].data = moodData.map((d, idx) => selected.has(idx) ? 90 : 20);
+            radarChart.data.datasets[0].pointBackgroundColor = moodData.map((d, idx) => selected.has(idx) ? '#764ba2' : '#bbb');
+            radarChart.update();
+        }
+
+        // Build Chart.js radar
+        const labels = moodData.map(d => d.label);
+        const ctx = canvas.getContext('2d');
+
+        const radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Humeur',
+                    data: moodData.map((d, idx) => selected.has(idx) ? 90 : 20),
+                    backgroundColor: 'rgba(102,126,234,0.15)',
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    pointBackgroundColor: moodData.map((d, idx) => selected.has(idx) ? '#764ba2' : '#bbb'),
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0,0,0,0.06)' },
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                        ticks: { display: false },
+                        pointLabels: {
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#333',
+                            padding: 15,
+                            callback: function(value, index) {
+                                return moodData[index].emoji + ' ' + value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                },
+                elements: {
+                    line: { tension: 0.3 }
+                }
+            }
+        });
+
+        // Click on canvas => toggle sector selection with improved detection
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            const dx = x - cx;
+            const dy = y - cy;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Only trigger click if within radar area (80% to 100% of radius)
+            const radius = Math.min(rect.width, rect.height) / 2;
+            if (distance > radius * 0.3 && distance < radius * 1.1) {
+                let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+                if (angle < 0) angle += 360;
+                const sector = 360 / labels.length;
+                let idx = Math.floor(angle / sector);
+                idx = (idx + labels.length) % labels.length;
+
+                // toggle selection
+                if (selected.has(idx)) selected.delete(idx); else selected.add(idx);
+                updateDisplay();
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+
+        // Submit button uses aggregated mood value (average)
+        submitBtn.addEventListener('click', () => {
+            const selectedArr = Array.from(selected);
+            const values = selectedArr.map(i => moodData[i].value);
+            const mood = values.length ? Math.round(values.reduce((a,b) => a + b, 0) / values.length) : 50;
+            window.location.href = `/results?mood=${mood}`;
+        });
+    </script>
+
+    <footer>
+        <p>&copy; 2025 Feelflix - Découvrez des films selon votre humeur | <a href="#" style="color: white; text-decoration: none;">À propos</a></p>
+    </footer>
+</body>
+</html>
