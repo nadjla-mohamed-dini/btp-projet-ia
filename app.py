@@ -13,9 +13,8 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from urllib.parse import quote_plus
-import sys
 import os
-from tmdb_utils import add_popular_movies_to_db, fetch_new_movies
+from tmdb_utils import add_popular_movies_to_db, fetch_new_movies, get_watch_providers
 
 
 from seed_tmdb_auto import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
@@ -288,25 +287,23 @@ def health():
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
     
 
-@app.route('/api/films/<mood_type>')
-def get_films_by_mood(mood_type):
-    mood = Mood.query.filter_by(mood_type=mood_type).first()
-    if not mood:
-        return jsonify({'error': 'Mood not found'}), 404
 
-    # Ajouter des films populaires liés à ce mood
-    add_popular_movies_to_db(mood.id, limit=5)
 
-    # Récupérer les films liés à ce mood (y compris les populaires insérés)
-    films = Movie.query.filter_by(mood_id=mood.id).order_by(Movie.rating.desc()).limit(10).all()
+@app.route('/api/movie/<int:movie_id>')
+def get_movie(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    providers = get_watch_providers(movie.tmdb_id, region="FR")
 
-    return jsonify([{
-        "title": film.title,
-        "description": film.description,
-        "genre": film.genre,
-        "rating": film.rating,
-        "poster_url": film.poster_url
-    } for film in films])
+    return jsonify({
+        "id": movie.id,
+        "title": movie.title,
+        "description": movie.description,
+        "genre": movie.genre,
+        "rating": movie.rating,
+        "poster_url": movie.poster_url,
+        "platforms": providers
+    })
+
 
 
 @app.route('/quiz')
@@ -417,6 +414,79 @@ def refresh_films(destination):
 
     return jsonify([
         {"title": f[0], "poster_url": f[1], "description": f[2], "year": f[3]} for f in films
+    ])
+# 👉 dictionnaire de synonymes pour les moods
+MOOD_ALIASES = {
+    "joyeux": "heureux",
+    "très triste": "triste",
+    "colère": "énervé",
+    "effrayé": "peur"
+}
+
+
+@app.route("/api/movie/<int:tmdb_id>", methods=["GET"])
+def get_movie_details(tmdb_id):
+    movie = Movie.query.filter_by(tmdb_id=tmdb_id).first()
+    if not movie:
+        return {"error": "Film introuvable"}, 404
+
+    # 🔍 Appel TMDb pour récupérer les providers
+    url = f"{BASE_URL}/movie/{tmdb_id}/watch/providers"
+    params = {"api_key": API_KEY}
+    r = requests.get(url, params=params)
+    platforms = []
+
+    if r.status_code == 200:
+        data = r.json().get("results", {})
+        country_data = data.get("FR", {})  # tu peux tester aussi "US"
+        providers = country_data.get("flatrate", []) + country_data.get("rent", []) + country_data.get("buy", [])
+
+        if not providers:
+            platforms.append({
+                "platform_name": "Actuellement au cinéma",
+                "platform_url": None,
+                "platform_logo": None
+            })
+        else:
+            for p in providers:
+                platforms.append({
+                    "platform_name": p.get("provider_name"),
+                    "platform_url": None,  # TMDb ne donne pas toujours l’URL, tu peux mapper avec JustWatch si besoin
+                    "platform_logo": f"https://image.tmdb.org/t/p/w92{p.get('logo_path')}" if p.get("logo_path") else None
+                })
+
+    return {
+        "tmdb_id": movie.tmdb_id,
+        "title": movie.title,
+        "description": movie.description,
+        "genre": movie.genre,
+        "rating": movie.rating,
+        "poster_url": movie.poster_url,
+        "platforms": platforms
+    }
+
+@app.route("/api/films/<mood>", methods=["GET"])
+def get_films_by_mood(mood):
+    # 🔄 alias
+    mood = MOOD_ALIASES.get(mood, mood)
+
+    mood_obj = Mood.query.filter_by(mood_type=mood).first()
+    if not mood_obj:
+        return jsonify({"error": f"Mood '{mood}' introuvable"}), 404
+
+    films = Movie.query.filter_by(mood_id=mood_obj.id).order_by(Movie.rating.desc()).limit(10).all()
+
+    return jsonify([
+        {
+            "id": f.id,
+            "tmdb_id": f.tmdb_id,   # 👈 important pour le frontend
+            "title": f.title,
+            "description": f.description,
+            "genre": f.genre,
+            "rating": f.rating,
+            "poster_url": f.poster_url
+        }
+        for f in films
     ])
 
 
