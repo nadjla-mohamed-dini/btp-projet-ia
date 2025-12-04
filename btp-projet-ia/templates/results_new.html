@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résultats des films - Feelflix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-top: 100px;
+            padding-bottom: 80px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid white;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .regenerate-button {
+            background: linear-gradient(135deg, #6bcf7f 0%, #4CAF50 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .regenerate-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(107, 207, 127, 0.4);
+        }
+
+        .regenerate-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .movies-list {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            width: 100%;
+        }
+
+        .movie-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-poster {
+            flex: 0 0 200px;
+            height: 280px;
+            object-fit: cover;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        .movie-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .movie-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .movie-genre {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .movie-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #f39c12;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .stars {
+            color: #f39c12;
+        }
+
+        .movie-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .movie-platforms {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .platforms-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .platforms-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .platform {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .platform:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .platform-logo {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+
+        .platform-cinema {
+            display: inline-flex;
+            align-items: center;
+            background: #ff6b6b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .no-platforms {
+            color: #999;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .no-movies {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            width: 100%;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .movie-card {
+                flex-direction: column;
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .movie-poster {
+                flex: 1;
+                min-height: 200px;
+                width: 100%;
+            }
+
+            .platforms-list {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .platform {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">🎬 Feelflix</div>
+        <nav>
+            <a href="/mood" class="active">Accueil</a>
+            <a href="/vc">Un voyage cinématographique</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/profile">Mon profil</a>
+        </nav>
+    </header>
+
+    <main>
+        <button class="back-button" onclick="window.history.back()">← Retour</button>
+        
+        <h1>🎬 Films recommandés selon votre humeur</h1>
+
+        <div class="action-buttons">
+            <button class="regenerate-button" id="regenerateBtn" onclick="loadMovies()">🔄 Régénérer</button>
+        </div>
+        
+        <div id="moviesContainer" class="movies-list">
+            <!-- Les films seront générés ici -->
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Feelflix - Découvrez des films selon votre humeur | <a href="#" style="color: white; text-decoration: none;">À propos</a></p>
+    </footer>
+
+    <script>
+        // Récupérer les paramètres de la requête
+        const urlParams = new URLSearchParams(window.location.search);
+        const mood = urlParams.get('mood');
+        let loadCount = 0;
+
+        // Fonction pour charger les films
+        async function loadMovies() {
+    if (!mood) {
+        document.getElementById('moviesContainer').innerHTML = 
+            '<div class="no-movies">Veuillez d\'abord sélectionner votre humeur.</div>';
+        return;
+    }
+
+    const regenerateBtn = document.getElementById('regenerateBtn');
+    if (regenerateBtn) {
+        regenerateBtn.disabled = true;
+        regenerateBtn.style.opacity = '0.6';
+    }
+
+    try {
+        // Ajouter un paramètre aléatoire et un timestamp pour éviter la mise en cache
+        const randomId = Math.random().toString(36).substring(7);
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/mood/films?mood=${mood}&_t=${timestamp}&_id=${randomId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const movies = data && data.movies ? data.movies : data;
+
+        if (!movies || movies.length === 0) {
+            document.getElementById('moviesContainer').innerHTML = 
+                '<div class="no-movies">Aucun film trouvé pour cette humeur.</div>';
+            if (regenerateBtn) {
+                regenerateBtn.disabled = false;
+                regenerateBtn.style.opacity = '1';
+            }
+            return;
+        }
+
+        // Afficher les films (maximum 6)
+        const container = document.getElementById('moviesContainer');
+        container.innerHTML = ''; // Vider le conteneur
+        
+        // Mélanger les films de manière aléatoire
+        const shuffledMovies = movies.sort(() => Math.random() - 0.5);
+        
+        shuffledMovies.slice(0, 6).forEach(film => {
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            
+            const rating = film.rating ? parseFloat(film.rating) : 0;
+            const stars = '★'.repeat(Math.round(rating / 2)) + '☆'.repeat(5 - Math.round(rating / 2));
+            
+            // Build platforms HTML avec boucle for...of
+            let platformsHtml = '<div class="platforms-list">';
+            
+            if (film.platforms && film.platforms.length > 0) {
+                // Utilisation de for...of pour parcourir les plateformes
+                for (const platform of film.platforms) {
+                    if (platform.platform_name === "Actuellement au cinéma") {
+                        platformsHtml += <div class="platform-cinema">🎬 Actuellement au cinéma</div>;
+                    } else {
+                        platformsHtml += `
+                            <a href="${platform.platform_url || '#'}" target="_blank" class="platform">
+                                ${platform.platform_logo ? <img src="${platform.platform_logo}" class="platform-logo" alt="${platform.platform_name}" /> : ''}
+                                <span>${platform.platform_name || 'Plateforme'}</span>
+                            </a>`;
+                    }
+                }
+            } else {
+                platformsHtml += '<div class="no-platforms">Information de plateforme non disponible</div>';
+            }
+            platformsHtml += '</div>';
+            
+            card.innerHTML = `
+                <img src="${film.poster_url || 'https://via.placeholder.com/200x280?text=No+Poster'}" 
+                     alt="${film.title}" 
+                     class="movie-poster"
+                     onerror="this.src='https://via.placeholder.com/200x280?text=No+Poster'">
+                <div class="movie-content">
+                    <h2 class="movie-title">${film.title || 'Titre inconnu'}</h2>
+                    <p class="movie-genre">${film.genre || 'Genre inconnu'}</p>
+                    <div class="movie-rating">
+                        <span class="stars">${stars}</span>
+                        <span>${rating}/10</span>
+                    </div>
+                    <p class="movie-description">${film.description || 'Pas de description disponible'}</p>
+                    <div class="movie-platforms">
+                        <div class="platforms-title">Où regarder :</div>
+                        ${platformsHtml}
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(card);
+        });
+
+        loadCount++;
+
+        if (regenerateBtn) {
+            regenerateBtn.disabled = false;
+            regenerateBtn.style.opacity = '1';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des films:', error);
+        document.getElementById('moviesContainer').innerHTML = 
+            '<div class="no-movies">Erreur lors du chargement des films. Veuillez réessayer.</div>';
+        if (regenerateBtn) {
+            regenerateBtn.disabled = false;
+            regenerateBtn.style.opacity = '1';
+        }
+    }
+}
+
+// Charger les films au chargement de la page
+document.addEventListener('DOMContentLoaded', loadMovies);
+    </script>
+</body>
+</html>
