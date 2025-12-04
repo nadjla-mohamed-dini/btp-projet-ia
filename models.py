@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from sqlalchemy import UniqueConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -46,12 +47,13 @@ class Movie(db.Model):
     __tablename__ = 'movies'
     
     id = db.Column(db.Integer, primary_key=True)
+    tmdb_id = db.Column(db.Integer, index=True)
     mood_id = db.Column(db.Integer, db.ForeignKey('moods.id'), nullable=False)
     title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    genre = db.Column(db.String(100))
+    description = db.Column(db.Text, nullable=True)
+    poster_url = db.Column(db.String, nullable=True)
+    genre = db.Column(db.String, nullable=True)
     rating = db.Column(db.Float)
-    poster_url = db.Column(db.String(255)) 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
@@ -83,3 +85,32 @@ class Profile(db.Model):
     
     def __repr__(self):
         return f'<Profile user_id={self.user_id}>'
+
+
+class VoyageFilm(db.Model):
+    __tablename__ = 'voyage_films'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    destination = db.Column(db.String(50), nullable=False)  # paris, newyork, tokyo
+    year = db.Column(db.Integer)
+    description = db.Column(db.Text)
+    poster_url = db.Column(db.String(255))
+    
+    platforms = db.relationship('StreamingPlatform', backref='film', lazy=True, cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<VoyageFilm {self.title}>'
+
+
+class StreamingPlatform(db.Model):
+    __tablename__ = 'streaming_platforms'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    film_id = db.Column(db.Integer, db.ForeignKey('voyage_films.id'), nullable=False)
+    platform_name = db.Column(db.String(50), nullable=False)  # netflix, disney, prime, hulu, apple, canal, crunchyroll
+    platform_url = db.Column(db.String(255))
+    platform_logo = db.Column(db.String(255))  # URL du logo
+    
+    def __repr__(self):
+        return f'<StreamingPlatform {self.platform_name}>'

@@ -245,6 +245,66 @@
         #filmResults img:hover {
         transform: scale(1.05);
         }
+        .modal {
+        position: fixed;
+        top:0; left:0; width:100%; height:100%;
+        background: rgba(0,0,0,0.6);
+        display:flex; align-items:center; justify-content:center;
+        z-index:2000;
+        }
+        .modal-content {
+        background:white; padding:2rem; border-radius:10px;
+        max-width:600px; width:90%;
+        box-shadow:0 8px 24px rgba(0,0,0,0.2);
+        }
+        .close {
+        float:right; font-size:1.5rem; cursor:pointer;
+        }
+        .platforms-list {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+        }
+
+        .platform {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: #f5f5f5;
+        padding: 8px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #333;
+        font-weight: 600;
+        transition: background 0.2s;
+        }
+
+        .platform:hover {
+        background: #e0e0e0;
+        }
+
+        .platform-logo {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+        }
+
+        .platform-cinema {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #ffe0e0;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-weight: bold;
+        color: #b00020;
+        }
+        .platform-cinema::before {
+        content: "🎥";
+        font-size: 1.2rem;
+        }
+
 
     </style>
 </head>
@@ -293,6 +353,15 @@
         <div class="info">
             <strong>💡 Astuce :</strong> Déplacez le curseur pour exprimer votre humeur actuelle. 
             Nous vous recommanderons des films en fonction de votre état d'esprit !
+        </div>
+    </div>
+    <div id="movie-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title"></h2>
+            <img id="modal-poster" style="width:200px; border-radius:8px;" />
+            <p id="modal-description"></p>
+            <div id="modal-platforms"></div>
         </div>
     </div>
 
@@ -356,51 +425,99 @@
         slider.addEventListener('input', updateMood);
 
         submitBtn.addEventListener('click', () => {
-    const mood = getMoodType(parseInt(slider.value));
+        const mood = getMoodType(parseInt(slider.value));
 
-    fetch(`/api/films/${mood}`)
-        .then(res => res.json())
-        .then(data => {
-            const oldResults = document.getElementById('filmResults');
-            if (oldResults) oldResults.remove();
+        fetch(`/api/films/${mood}`)
+            .then(res => res.json())
+            .then(data => {
+                const oldResults = document.getElementById('filmResults');
+                if (oldResults) oldResults.remove();
 
-            const filmContainer = document.createElement('div');
-            filmContainer.id = 'filmResults';
-            filmContainer.style.marginTop = '30px';
+                const filmContainer = document.createElement('div');
+                filmContainer.id = 'filmResults';
+                filmContainer.style.marginTop = '30px';
 
-            data.forEach(film => {
-                const card = document.createElement('div');
-                card.style.background = '#f5f5f5';
-                card.style.padding = '15px';
-                card.style.marginBottom = '15px';
-                card.style.borderRadius = '10px';
-                card.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                // 👉 Ici tu crées les cartes
+                data.forEach(film => {
+                    const card = document.createElement('div');
+                    card.style.background = '#f5f5f5';
+                    card.style.padding = '15px';
+                    card.style.marginBottom = '15px';
+                    card.style.borderRadius = '10px';
+                    card.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                    card.style.cursor = 'pointer';
 
-                card.innerHTML = `
-                    <img src="${film.poster_url}" alt="${film.title}" style="width:100%; border-radius:8px; margin-bottom:10px;">
-                    <h3>${film.title}</h3>
-                    <p>${film.description}</p>
-                    <p><strong>Genre:</strong> ${film.genre}</p>
-                    <p><strong>Note:</strong> ${film.rating}</p>
-                `;
+                    card.innerHTML = `
+                        <img src="${film.poster_url}" alt="${film.title}" style="width:100%; border-radius:8px; margin-bottom:10px;">
+                        <h3>${film.title}</h3>
+                        <p><strong>Note:</strong> ${film.rating}</p>
+                    `;
 
-                filmContainer.appendChild(card);
+                    // 👉 au clic, ouvrir la modal
+                    card.addEventListener("click", () => showMovieDetails(film.id));
+
+                    filmContainer.appendChild(card);
+                });
+
+                document.querySelector('.container').appendChild(filmContainer);
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Erreur lors du chargement des films.");
             });
+    });
 
-            document.querySelector('.container').appendChild(filmContainer);
+    // 👉 Ici tu définis la fonction showMovieDetails
+    function showMovieDetails(movieId) {
+    fetch(`/api/movie/${movieId}`)
+        .then(res => res.json())
+        .then(movie => {
+            document.getElementById("modal-title").textContent = movie.title;
+            document.getElementById("modal-description").textContent = movie.description || "Pas de description disponible.";
+            document.getElementById("modal-poster").src = movie.poster_url;
+
+            const platformsDiv = document.getElementById("modal-platforms");
+            platformsDiv.innerHTML = "";
+
+            if (movie.platforms && movie.platforms.length > 0) {
+                // Cas cinéma uniquement
+                if (movie.platforms.length === 1 && movie.platforms[0].platform_name === "Actuellement au cinéma") {
+                    platformsDiv.innerHTML = `<div class="platform-cinema">Actuellement au cinéma</div>`;
+                } else {
+                    // Cas plateformes de streaming
+                    let html = "<h4>Regarder sur :</h4><div class='platforms-list'>";
+                    movie.platforms.forEach(p => {
+                        html += `
+                            <a href="${p.platform_url}" target="_blank" class="platform">
+                                ${p.platform_logo ? `<img src="${p.platform_logo}" class="platform-logo" />` : ""}
+                                <span>${p.platform_name}</span>
+                            </a>`;
+                    });
+                    html += "</div>";
+                    platformsDiv.innerHTML = html;
+                }
+            }
+
+            document.getElementById("movie-modal").style.display = "flex";
         })
-        .catch(err => {
-            console.error(err);
-            alert("Erreur lors du chargement des films.");
-        });
-});
+        .catch(err => console.error("Erreur chargement film:", err));
+}
+    
+
+
+    // 👉 Fermer la modal
+    document.querySelector(".close").onclick = () => {
+        document.getElementById("movie-modal").style.display = "none";
+    };
+
+    // Initialize
+    updateMood();
 
 
 
 
 
-        // Initialize
-        updateMood();
+    
     </script>
 
     <footer>
