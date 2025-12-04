@@ -27,8 +27,8 @@
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
-            width: 90%;
+            max-width: 90vw;
+            width: 100%;
         }
 
         h1 {
@@ -100,27 +100,77 @@
         }
 
         .mood-display {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 10px;
-            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            width: 100%;
+            height: 600px;
+        }
+
+        .circular-slider {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #ff6b6b 0deg,
+                #ffd93d 60deg,
+                #6bcf7f 120deg,
+                #667eea 180deg,
+                #764ba2 240deg,
+                #ff6b6b 360deg
+            );
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), inset 0 2px 5px rgba(255, 255, 255, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .circular-slider::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .slider-center {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider-emoji {
+            font-size: 45px;
+            line-height: 1;
+        }
+
+        .slider-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            font-weight: 600;
         }
 
         .mood-emoji {
-            text-align: center;
-            font-size: 30px;
-            padding: 10px;
-            border-radius: 10px;
-            background: #f5f5f5;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            opacity: 0.5;
-        }
-
-        .mood-emoji.active {
-            opacity: 1;
-            transform: scale(1.1);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: none;
         }
 
         .mood-value {
@@ -245,7 +295,7 @@
         <div class="logo">🎬 Feelflix</div>
         <nav>
             <a href="/mood" class="active">Accueil</a>
-            <a href="/voyage" >Un voyage cinématographique</a>
+            <a href="/vc" >Un voyage cinématographique</a>
             <a href="/quiz">Quiz</a>
             <a href="/profile">Mon profil</a>
         </nav>
@@ -256,95 +306,140 @@
         <div class="mood-section">
             <label for="moodSlider">Comment vous sentez-vous ?</label>
             
-            <div class="slider-container">
-                <input 
-                    type="range" 
-                    id="moodSlider" 
-                    min="0" 
-                    max="100" 
-                    value="50"
-                    class="slider"
-                >
-            </div>
-
             <div class="mood-display">
-                <div class="mood-emoji">😢</div>
-                <div class="mood-emoji">😂</div>
-                <div class="mood-emoji">😠</div>
-                <div class="mood-emoji">🙂</div>
-                <div class="mood-emoji">😍</div>
-                <div class="mood-emoji">😨</div>
+                <canvas id="moodRadar" width="600" height="600" style="max-width:100%; width:100%;"></canvas>
             </div>
 
-            <div class="mood-value" id="moodValue">50</div>
             <div class="mood-label" id="moodLabel">Neutre</div>
         </div>
 
         <button id="submitBtn">Trouver un film</button>
 
         <div class="info">
-            <strong>💡 Astuce :</strong> Déplacez le curseur pour exprimer votre humeur actuelle. 
+            <strong>💡 Astuce :</strong> Cliquez sur le radar pour sélectionner une ou plusieurs émotions.
             Nous vous recommanderons des films en fonction de votre état d'esprit !
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const slider = document.getElementById('moodSlider');
-        const moodValue = document.getElementById('moodValue');
-        const moodLabel = document.getElementById('moodLabel');
-        const moodEmojis = document.querySelectorAll('.mood-emoji');
+        const moodData = [
+            { value: 0, emoji: '😭', label: 'Très triste' },
+            { value: 17, emoji: '😢', label: 'Triste' },
+            { value: 33, emoji: '😂', label: 'Joyeux' },
+            { value: 50, emoji: '🙂', label: 'Neutre' },
+            { value: 67, emoji: '😁', label: 'Heureux' },
+            { value: 83, emoji: '😍', label: 'Amoureux' },
+            { value: 100, emoji: '😨', label: 'Peur' }
+        ];
+
+        const moodLabelEl = document.getElementById('moodLabel');
         const submitBtn = document.getElementById('submitBtn');
+        const canvas = document.getElementById('moodRadar');
 
-        const moodLabels = {
-            0: 'Très triste',
-            25: 'Joyeux',
-            50: 'Énervé',
-            75: 'Heureux',
-            85: 'Amoureux',
-            100: 'Peur'
-        };
+        // Support multiple selected emotions
+        let selected = new Set([3]); // default to Neutre
 
-        function updateMood() {
-            const value = parseInt(slider.value);
-            moodValue.textContent = value;
+        function updateDisplay() {
+            const selectedArr = Array.from(selected);
+            const labelsSelected = selectedArr.map(i => moodData[i].label);
+            const values = selectedArr.map(i => moodData[i].value);
+            const avg = values.length ? Math.round(values.reduce((a,b) => a + b, 0) / values.length) : 50;
 
-            // Update label
-            let label = '';
-            if (value <= 20) label = moodLabels[0];
-            else if (value <= 35) label = moodLabels[25];
-            else if (value <= 50) label = moodLabels[50];
-            else if (value <= 65) label = moodLabels[75];
-            else if (value <= 85) label = moodLabels[85];
-            else label = moodLabels[100];
-            
-            moodLabel.textContent = label;
+            moodLabelEl.textContent = labelsSelected.length ? labelsSelected.join(', ') : 'Neutre';
 
-            // Update emoji highlights
-            let activeIndex;
-            if (value <= 20) activeIndex = 0;
-            else if (value <= 35) activeIndex = 1;
-            else if (value <= 50) activeIndex = 2;
-            else if (value <= 65) activeIndex = 3;
-            else if (value <= 85) activeIndex = 4;
-            else activeIndex = 5;
-            
-            moodEmojis.forEach((emoji, index) => {
-                emoji.classList.remove('active');
-                if (index === activeIndex) {
-                    emoji.classList.add('active');
-                }
-            });
+            radarChart.data.datasets[0].data = moodData.map((d, idx) => selected.has(idx) ? 90 : 20);
+            radarChart.data.datasets[0].pointBackgroundColor = moodData.map((d, idx) => selected.has(idx) ? '#764ba2' : '#bbb');
+            radarChart.update();
         }
 
-        slider.addEventListener('input', updateMood);
+        // Build Chart.js radar
+        const labels = moodData.map(d => d.label);
+        const ctx = canvas.getContext('2d');
 
-        submitBtn.addEventListener('click', () => {
-            const mood = parseInt(slider.value);
-            alert(`Vous avez sélectionné une humeur de ${mood}/100. Films en préparation...`);
+        const radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Humeur',
+                    data: moodData.map((d, idx) => selected.has(idx) ? 90 : 20),
+                    backgroundColor: 'rgba(102,126,234,0.15)',
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    pointBackgroundColor: moodData.map((d, idx) => selected.has(idx) ? '#764ba2' : '#bbb'),
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0,0,0,0.06)' },
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                        ticks: { display: false },
+                        pointLabels: {
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#333',
+                            padding: 15,
+                            callback: function(value, index) {
+                                return moodData[index].emoji + ' ' + value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                },
+                elements: {
+                    line: { tension: 0.3 }
+                }
+            }
         });
 
-        // Initialize
-        updateMood();
+        // Click on canvas => toggle sector selection with improved detection
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            const dx = x - cx;
+            const dy = y - cy;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Only trigger click if within radar area (80% to 100% of radius)
+            const radius = Math.min(rect.width, rect.height) / 2;
+            if (distance > radius * 0.3 && distance < radius * 1.1) {
+                let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+                if (angle < 0) angle += 360;
+                const sector = 360 / labels.length;
+                let idx = Math.floor(angle / sector);
+                idx = (idx + labels.length) % labels.length;
+
+                // toggle selection
+                if (selected.has(idx)) selected.delete(idx); else selected.add(idx);
+                updateDisplay();
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+
+        // Submit button uses aggregated mood value (average)
+        submitBtn.addEventListener('click', () => {
+            const selectedArr = Array.from(selected);
+            const values = selectedArr.map(i => moodData[i].value);
+            const mood = values.length ? Math.round(values.reduce((a,b) => a + b, 0) / values.length) : 50;
+            window.location.href = `/results?mood=${mood}`;
+        });
     </script>
 
     <footer>

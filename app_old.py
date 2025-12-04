@@ -1,50 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-from dotenv import load_dotenv
-
-from tmdb_utils import add_popular_movies_to_db
-
-load_dotenv()
-
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import psycopg2
-from urllib.parse import quote_plus
+import os
+from dotenv import load_dotenv
 
-
-from seed_tmdb_auto import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
-
-import requests
-
-API_KEY = os.getenv("TMDB_API_KEY")
-BASE_URL = "https://api.themoviedb.org/3"
-
-def fetch_new_movies(destination, limit=5):
-    """Récupère des films populaires depuis TMDb pour une destination donnée"""
-    url = f"{BASE_URL}/discover/movie"
-    params = {
-        "api_key": API_KEY,
-        "sort_by": "popularity.desc",
-        "language": "fr-FR",
-        "page": 1,
-        "region": "FR"
-    }
-
-    if destination == "paris":
-        params["with_keywords"] = "Paris"
-    elif destination == "tokyo":
-        params["with_keywords"] = "Tokyo"
-    elif destination == "newyork":
-        params["with_keywords"] = "New York"
-
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        return response.json().get("results", [])[:limit]
-    return []
+load_dotenv()
 
 # Configuration
 db_user = os.environ.get('DB_USER', 'postgres')
@@ -62,15 +26,11 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-secret-key'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# Enable CORS
-CORS(app, supports_credentials=True)
-
-# Import models AFTER app config
+# Import models after app creation
 from models import db, User, Mood, Movie, Profile
 
+# Initialize db
 db.init_app(app)
 
 # Configuration des uploads
@@ -80,11 +40,22 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Enable CORS
+CORS(app, supports_credentials=True)
+
+# Import models and initialize db
+from models import db, User, Mood, Movie, Profile
+
+db.init_app(app)
+
 
 def init_db():
     with app.app_context():
         db.create_all()
-        print("Base de données créée")
+        print("✓ Base de données créée avec SQLAlchemy")
 
 
 # Routes
@@ -104,6 +75,33 @@ def mood():
         return redirect(url_for('formulaire'))
     return render_template('mood.html')
 
+@app.route('/health')
+def health():
+    try:
+        with app.app_context():
+            db.session.execute(text('SELECT 1'))
+        return jsonify({"status": "healthy", "database": "connected"}), 200
+    except Exception as e:
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
+    
+
+@app.route('/api/films/<mood_type>')
+def get_films_by_mood(mood_type):
+    mood = Mood.query.filter_by(mood_type=mood_type).first()
+    if not mood:
+        return jsonify({'error': 'Mood not found'}), 404
+
+    films = Movie.query.filter_by(mood_id=mood.id).limit(5).all()
+    return jsonify([
+    {
+        "title": film.title,
+        "description": film.description,
+        "genre": film.genre,
+        "rating": film.rating,
+        "poster_url": film.poster_url
+    }
+    for film in films
+])
 
 @app.route('/quiz')
 def quiz():
@@ -117,13 +115,6 @@ def profile():
     if 'user_id' not in session:
         return redirect(url_for('formulaire'))
     return render_template('profile.html')
-
-
-@app.route('/results')
-def results():
-    if 'user_id' not in session:
-        return redirect(url_for('formulaire'))
-    return render_template('results.html')
 
 
 # API Endpoints - Authentification
@@ -141,6 +132,11 @@ def signup():
         user = User(username=data['username'], email=data['email'])
         user.set_password(data['password'])
         db.session.add(user)
+        db.session.commit()
+
+        default_moods = ["joyeux", "heureux", "très triste", "amoureux", "énervé", "peur"]
+        for m in default_moods:
+            db.session.add(Mood(mood_type=m, user_id=user.id))
         db.session.commit()
         
         session['user_id'] = user.id
@@ -224,7 +220,7 @@ def update_profile(user_id):
     profile.film = data.get('favorite_movie', profile.film)
     
     db.session.commit()
-    print(f"DEBUG - Profil sauvegardé: citation={profile.citation}, acteur={profile.acteur}")
+    print(f"DEBUG - Profil sauvegardé: citation={profile.citation}, acteur={profile.acteur}, realisateur={profile.realisateur}, film={profile.film}")
     return jsonify({'status': 'success', 'profile': profile.to_dict()})
 
 
@@ -250,12 +246,17 @@ def upload_profile_photo(user_id):
             profile = Profile(user_id=user_id)
             db.session.add(profile)
         
+        # Créer un nom de fichier unique
         filename = secure_filename(f"{user_id}_{datetime.utcnow().timestamp()}_{file.filename}")
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         
+        # Créer le dossier s'il n'existe pas
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        
+        # Sauvegarder le fichier
         file.save(filepath)
         
+        # Enregistrer l'URL dans la base de données
         profile.photo_url = f"/uploads/{filename}"
         db.session.commit()
         
@@ -336,7 +337,7 @@ def verify_quiz_answer():
     })
 
 
-# API Endpoints - Mood/Films
+# API Endpoints - Films/Mood
 @app.route('/api/mood/films', methods=['GET'])
 def get_mood_films():
     mood_value = request.args.get('mood')
@@ -348,6 +349,7 @@ def get_mood_films():
     except ValueError:
         return jsonify({'status': 'error', 'message': 'Mood doit être un nombre'}), 400
     
+    # Mapper les valeurs de mood aux types
     mood_map = {
         0: 'très triste',
         20: 'triste',
@@ -358,15 +360,19 @@ def get_mood_films():
         100: 'peur'
     }
     
+    # Trouver le mood_type le plus proche
     mood_type = mood_map.get(mood_value)
     
     if not mood_type:
+        # Trouver le mood_type le plus proche
         closest_mood = min(mood_map.items(), key=lambda x: abs(x[0] - mood_value))
         mood_type = closest_mood[1]
     
+    # Chercher les films associés à ce mood
     moods = Mood.query.filter_by(mood_type=mood_type).all()
     
     if not moods:
+        # Créer un mood s'il n'existe pas
         new_mood = Mood(mood_type=mood_type, user_id=session.get('user_id', 1))
         db.session.add(new_mood)
         db.session.commit()
@@ -386,191 +392,19 @@ def get_mood_films():
 @app.route('/api/movies')
 def get_movies():
     mood = request.args.get('mood')
-
-    # Ajouter automatiquement des films populaires en DB
-    add_popular_movies_to_db(limit=5)
-
     if mood:
         moods = Mood.query.filter_by(mood_type=mood).all()
         movies = []
         for m in moods:
-            movies.extend([{
-                'id': movie.id,
-                'title': movie.title,
-                'description': movie.description,
-                'genre': movie.genre,
-                'rating': movie.rating,
-                'poster_url': movie.poster_url
-            } for movie in m.movies])
+            movies.extend([movie.to_dict() for movie in m.movies])
         return jsonify(movies)
     else:
         movies = Movie.query.all()
-        return jsonify([{
-            'id': m.id,
-            'title': m.title,
-            'description': m.description,
-            'genre': m.genre,
-            'rating': m.rating,
-            'poster_url': m.poster_url
-        } for m in movies])
-    
-@app.route("/vc")
-def voyage():
-    return render_template("voyage_cinematographique.html")
+        return jsonify([m.to_dict() for m in movies])
 
-
-from flask import render_template
-
-@app.route('/voyage/<destination>')
-def voyage_detail(destination):
-    """Affiche les films liés à une destination"""
-    from models import VoyageFilm
-    
-    # Valider la destination
-    if destination not in ['paris', 'newyork', 'tokyo']:
-        return redirect('/vc')
-    
-    # Récupérer les films pour cette destination depuis la BD
-    films = VoyageFilm.query.filter_by(destination=destination).all()
-    
-    return render_template('voyage_detail.html', destination=destination, films=films)
-
-
-@app.route('/annee/<int:year>')
-def annee_detail(year):
-    """Affiche les films d'une année donnée"""
-    from models import VoyageFilm
-    
-    # Valider l'année
-    if year not in [1990, 2000, 2010]:
-        return redirect('/vc')
-    
-    # Chercher les films avec la destination "years_YYYY"
-    year_dest = f'years_{year}'
-    films = VoyageFilm.query.filter_by(destination=year_dest).all()
-    
-    return render_template('annee_detail.html', year=year, films=films)
-
-#teste pour rafraichir les films depuis TMDB
-@app.route('/refresh_films/<destination>', methods=['POST'])
-def refresh_films(destination):
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD
-    )
-    cursor = conn.cursor()
-
-    # Récupérer des films depuis TMDb
-    new_movies = fetch_new_movies(destination)
-
-    for m in new_movies:
-        title = m.get("title")
-        year = m.get("release_date", "")[:4]
-        description = m.get("overview")
-        poster_url = f"https://image.tmdb.org/t/p/w500{m['poster_path']}" if m.get("poster_path") else None
-
-        cursor.execute(
-            """
-            INSERT INTO voyage_films (title, destination, year, description, poster_url)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (title) DO NOTHING;
-            """,
-            (title, destination, year, description, poster_url)
-        )
-
-    conn.commit()
-
-    # Tirer 5 films aléatoires (anciens + nouveaux)
-    cursor.execute(
-        "SELECT title, poster_url, description, year FROM voyage_films WHERE destination = %s ORDER BY RANDOM() LIMIT 5;",
-        (destination,)
-    )
-    films = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    return jsonify([
-        {"title": f[0], "poster_url": f[1], "description": f[2], "year": f[3]} for f in films
-    ])
-
-MOOD_ALIASES = {
-    "joyeux": "heureux",
-    "très triste": "triste",
-    "colère": "énervé",
-    "effrayé": "peur"
-}
-
-
-@app.route("/api/movie/<int:tmdb_id>", methods=["GET"])
-def get_movie_details(tmdb_id):
-    movie = Movie.query.filter_by(tmdb_id=tmdb_id).first()
-    if not movie:
-        return {"error": "Film introuvable"}, 404
-
-    # 🔍 Appel TMDb pour récupérer les providers
-    url = f"{BASE_URL}/movie/{tmdb_id}/watch/providers"
-    params = {"api_key": API_KEY}
-    r = requests.get(url, params=params)
-    platforms = []
-
-    if r.status_code == 200:
-        data = r.json().get("results", {})
-        country_data = data.get("FR", {})  # tu peux tester aussi "US"
-        providers = country_data.get("flatrate", []) + country_data.get("rent", []) + country_data.get("buy", [])
-
-        if not providers:
-            platforms.append({
-                "platform_name": "Actuellement au cinéma",
-                "platform_url": None,
-                "platform_logo": None
-            })
-        else:
-            for p in providers:
-                platforms.append({
-                    "platform_name": p.get("provider_name"),
-                    "platform_url": None,  # TMDb ne donne pas toujours l’URL, tu peux mapper avec JustWatch si besoin
-                    "platform_logo": f"https://image.tmdb.org/t/p/w92{p.get('logo_path')}" if p.get("logo_path") else None
-                })
-
-    return {
-        "tmdb_id": movie.tmdb_id,
-        "title": movie.title,
-        "description": movie.description,
-        "genre": movie.genre,
-        "rating": movie.rating,
-        "poster_url": movie.poster_url,
-        "platforms": platforms
-    }
-
-@app.route("/api/films/<mood>", methods=["GET"])
-def get_films_by_mood(mood):
-    # 🔄 alias
-    mood = MOOD_ALIASES.get(mood, mood)
-
-    mood_obj = Mood.query.filter_by(mood_type=mood).first()
-    if not mood_obj:
-        return jsonify({"error": f"Mood '{mood}' introuvable"}), 404
-
-    films = Movie.query.filter_by(mood_id=mood_obj.id).order_by(Movie.rating.desc()).limit(10).all()
-
-    return jsonify([
-        {
-            "id": f.id,
-            "tmdb_id": f.tmdb_id,   # 👈 important pour le frontend
-            "title": f.title,
-            "description": f.description,
-            "genre": f.genre,
-            "rating": f.rating,
-            "poster_url": f.poster_url
-        }
-        for f in films
-    ])
 
 if __name__ == '__main__':
-    print("Feelflix démarre sur http://localhost:5000")
     with app.app_context():
-        db.create_all()
+        init_db()
+    print("🎬 Feelflix démarre sur http://localhost:5000")
     app.run(debug=True, port=5000)

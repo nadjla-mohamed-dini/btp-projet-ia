@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résultats des films - Feelflix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-top: 100px;
+            padding-bottom: 80px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom: 2px solid white;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .regenerate-button {
+            background: linear-gradient(135deg, #6bcf7f 0%, #4CAF50 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .regenerate-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(107, 207, 127, 0.4);
+        }
+
+        .regenerate-button:active {
+            transform: translateY(0);
+        }
+
+        .regenerate-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .movies-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .movie-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+
+        .movie-content {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .movie-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .movie-genre {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .movie-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .movie-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            color: #f39c12;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .stars {
+            color: #f39c12;
+        }
+
+        .movie-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .movie-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .no-movies {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            width: 100%;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+        /* Modal for movie details */
+        #movie-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        #movie-modal .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 1000px;
+            width: 100%;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            color: #222;
+        }
+
+        #movie-modal .modal-left {
+            flex: 0 0 300px;
+        }
+
+        #movie-modal .modal-left img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        #movie-modal .modal-right { flex: 1; }
+
+        #movie-modal .close {
+            position: absolute;
+            top: 18px;
+            right: 22px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .platforms-list { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+        .platform { display:flex; gap:8px; align-items:center; text-decoration:none; color:#333; background:#f5f5f5; padding:8px 10px; border-radius:8px; }
+        .platform-logo { width:28px; height:28px; object-fit:contain; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">🎬 Feelflix</div>
+        <nav>
+            <a href="/mood" class="active">Accueil</a>
+            <a href="/vc">Un voyage cinématographique</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/profile">Mon profil</a>
+        </nav>
+    </header>
+
+    <main>
+        <button class="back-button" onclick="window.history.back()">← Retour</button>
+        
+        <h1>🎬 Films recommandés selon votre humeur</h1>
+
+        <div class="action-buttons">
+            <button class="regenerate-button" id="regenerateBtn" onclick="loadMovies()">🔄</button>
+        </div>
+        
+        <div id="moviesContainer" class="movies-grid">
+            <!-- Les films seront générés ici -->
+        </div>
+    </main>
+
+    <!-- Modal minimal pour les détails du film -->
+    <div id="movie-modal">
+        <button class="close" aria-label="Fermer">✕</button>
+        <div class="modal-content">
+            <div class="modal-left">
+                <img id="modal-poster" src="https://via.placeholder.com/300x450?text=Poster" alt="Poster">
+            </div>
+            <div class="modal-right">
+                <h2 id="modal-title">Titre</h2>
+                <p id="modal-description">Description</p>
+                <div id="modal-platforms"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Feelflix - Découvrez des films selon votre humeur | <a href="#" style="color: white; text-decoration: none;">À propos</a></p>
+    </footer>
+
+    <script>
+        // Récupérer les paramètres de la requête
+        const urlParams = new URLSearchParams(window.location.search);
+        const mood = urlParams.get('mood');
+        let loadCount = 0;
+
+        // Fonction pour charger les films
+        async function loadMovies() {
+            if (!mood) {
+                document.getElementById('moviesContainer').innerHTML = 
+                    '<div class="no-movies">Veuillez d\'abord sélectionner votre humeur.</div>';
+                return;
+            }
+
+            const regenerateBtn = document.getElementById('regenerateBtn');
+            if (regenerateBtn) {
+                regenerateBtn.disabled = true;
+                regenerateBtn.style.opacity = '0.6';
+            }
+
+            try {
+                // Ajouter un paramètre aléatoire et un timestamp pour éviter la mise en cache
+                const randomId = Math.random().toString(36).substring(7);
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/mood/films?mood=${mood}&_t=${timestamp}&_id=${randomId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const movies = data && data.movies ? data.movies : data;
+
+                if (!movies || movies.length === 0) {
+                    document.getElementById('moviesContainer').innerHTML = 
+                        '<div class="no-movies">Aucun film trouvé pour cette humeur.</div>';
+                    if (regenerateBtn) {
+                        regenerateBtn.disabled = false;
+                        regenerateBtn.style.opacity = '1';
+                    }
+                    return;
+                } 
+
+                // Afficher les films (maximum 6)
+                const container = document.getElementById('moviesContainer');
+                container.innerHTML = ''; // Vider le conteneur
+                
+                // Mélanger les films de manière aléatoire
+                const shuffledMovies = movies.sort(() => Math.random() - 0.5);
+                
+                shuffledMovies.slice(0, 6).forEach(film => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    
+                    const rating = film.rating ? parseFloat(film.rating) : 0;
+                    const stars = '★'.repeat(Math.round(rating / 2)) + '☆'.repeat(5 - Math.round(rating / 2));
+                    
+                    card.innerHTML = `
+                        <img src="${film.poster_url || 'https://via.placeholder.com/300x400?text=No+Poster'}" 
+                             alt="${film.title}" 
+                             class="movie-poster"
+                             onerror="this.src='https://via.placeholder.com/300x400?text=No+Poster'">
+                        <div class="movie-content">
+                            <h2 class="movie-title">${film.title}</h2>
+                            <p class="movie-genre">${film.genre || 'Genre inconnu'}</p>
+                            <p class="movie-description">${film.description || 'Pas de description disponible'}</p>
+                            <div class="movie-rating">
+                                <span class="stars">${stars}</span>
+                                <span>${rating}/10</span>
+                            </div>
+                            <button class="movie-button" onclick="alert('Film: ${film.title}')">En savoir plus</button>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+
+                    // Open modal when clicking the card (use available id field)
+                    const movieId = film.tmdb_id || film.id || film.tmdbId || film.tmdbId;
+                    card.addEventListener('click', () => showMovieDetails(movieId));
+
+                    // Also wire the "En savoir plus" button to the modal and stop propagation
+                    const moreBtn = card.querySelector('.movie-button');
+                    if (moreBtn) {
+                        moreBtn.addEventListener('click', (ev) => {
+                            ev.stopPropagation();
+                            showMovieDetails(movieId);
+                        });
+                    }
+                });
+
+                loadCount++;
+
+                if (regenerateBtn) {
+                    regenerateBtn.disabled = false;
+                    regenerateBtn.style.opacity = '1';
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des films:', error);
+                document.getElementById('moviesContainer').innerHTML = 
+                    '<div class="no-movies">Erreur lors du chargement des films. Veuillez réessayer.</div>';
+                if (regenerateBtn) {
+                    regenerateBtn.disabled = false;
+                    regenerateBtn.style.opacity = '1';
+                }
+            }
+        }
+
+        // Charger les films au chargement de la page
+        document.addEventListener('DOMContentLoaded', loadMovies);
+
+    // 👉 Ici tu définis la fonction showMovieDetails
+    function showMovieDetails(movieId) {
+    fetch(`/api/films/${movieId}`)
+        .then(res => res.json())
+        .then(movie => {
+            document.getElementById("modal-title").textContent = movie.title || 'Titre inconnu';
+            document.getElementById("modal-description").textContent = movie.description || "Pas de description disponible.";
+            document.getElementById("modal-poster").src = movie.poster_url || 'https://via.placeholder.com/300x450?text=No+Poster';
+
+            const platformsDiv = document.getElementById("modal-platforms");
+            // Always show the "Où le trouver" section
+            let html = "<h4>Où le trouver :</h4>";
+
+            if (movie.platforms && movie.platforms.length > 0) {
+                // Cinema-only
+                if (movie.platforms.length === 1 && movie.platforms[0].platform_name === "Actuellement au cinéma") {
+                    html += `<div class="platform-cinema">Actuellement au cinéma</div>`;
+                } else {
+                    html += "<div class='platforms-list'>";
+                    movie.platforms.forEach(p => {
+                        html += `
+                            <a href="${p.platform_url || '#'}" target="_blank" class="platform">
+                                ${p.platform_logo ? `<img src="${p.platform_logo}" class="platform-logo" />` : ""}
+                                <span>${p.platform_name || 'Plateforme'}</span>
+                            </a>`;
+                    });
+                    html += "</div>";
+                }
+            } else {
+                html += `<div class="no-platforms">Information non disponible</div>`;
+            }
+
+            platformsDiv.innerHTML = html;
+            document.getElementById("movie-modal").style.display = "flex";
+        })
+        .catch(err => {
+            console.error("Erreur chargement film:", err);
+            const platformsDiv = document.getElementById("modal-platforms");
+            platformsDiv.innerHTML = "<h4>Où le trouver :</h4><div class=\"no-platforms\">Erreur de récupération</div>";
+            document.getElementById("modal-title").textContent = 'Erreur';
+            document.getElementById("modal-description").textContent = 'Impossible de charger les détails du film.';
+            document.getElementById("movie-modal").style.display = "flex";
+        }); 
+}
+    function loadFilmsByMood(mood) {
+    fetch(`/api/films/${movieId}`)
+        .then(res => res.json())
+        .then(films => {
+            const container = document.getElementById("films-container");
+            container.innerHTML = "";
+
+            films.forEach(film => {
+                const card = document.createElement("div");
+                card.classList.add("film-card");
+                card.innerHTML = `
+                    <img src="${film.poster_url}" alt="${film.title}" />
+                    <h3>${film.title}</h3>
+                `;
+                // 👉 On passe bien film.tmdb_id
+                card.addEventListener("click", () => showMovieDetails(film.tmdb_id));
+                container.appendChild(card);
+            });
+        })
+        .catch(err => console.error("Erreur chargement films:", err));
+}
+
+
+    // Optional: attach a submit handler if this page has a slider + submit button
+    (function attachSubmitIfPresent(){
+        const submitBtn = document.getElementById('submitBtn');
+        const slider = document.getElementById('moodSlider');
+        // getMoodType may be defined on mood page; fallback to identity
+        const getMood = (val) => (typeof getMoodType === 'function') ? getMoodType(val) : val;
+
+        if (!submitBtn || !slider) return;
+
+        submitBtn.addEventListener('click', () => {
+            const mood = getMood(parseInt(slider.value));
+
+            fetch(`/api/films/${movieId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const oldResults = document.getElementById('filmResults');
+                    if (oldResults) oldResults.remove();
+
+                    const filmContainer = document.createElement('div');
+                    filmContainer.id = 'filmResults';
+                    filmContainer.style.marginTop = '30px';
+
+                    // Create cards
+                    (data || []).forEach(film => {
+                        const card = document.createElement('div');
+                        card.style.background = '#f5f5f5';
+                        card.style.padding = '15px';
+                        card.style.marginBottom = '15px';
+                        card.style.borderRadius = '10px';
+                        card.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                        card.style.cursor = 'pointer';
+
+                        card.innerHTML = `
+                            <img src="${film.poster_url || 'https://via.placeholder.com/300x400?text=No+Poster'}" alt="${film.title || ''}" style="width:100%; border-radius:8px; margin-bottom:10px;">
+                            <h3>${film.title || ''}</h3>
+                            <p><strong>Note:</strong> ${film.rating || ''}</p>
+                        `;
+
+                        // on click, open modal
+                        const movieId = film.id || film.tmdb_id || film.tmdbId;
+                        card.addEventListener('click', () => showMovieDetails(movieId));
+
+                        filmContainer.appendChild(card);
+                    });
+
+                    document.querySelector('.container').appendChild(filmContainer);
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Erreur lors du chargement des films.");
+                });
+        });
+    })();
+
+    // 👉 Fermer la modal (si l'élément existe)
+    const closeBtn = document.querySelector(".close");
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            const modal = document.getElementById("movie-modal");
+            if (modal) modal.style.display = "none";
+        };
+    }
+    </script>
+</body>
+</html>
